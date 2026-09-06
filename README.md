@@ -13,7 +13,7 @@ LlamaScope — Ollama na żywo                                   13:41:07
   GPU  ████████████████░░░░  84 %
        ▁▁▂▅▇███▇▅▃▂▁▁▁▂▄▆███
 
-  swap 1,8 GB użyte, 0,9 GB wolne  ⚠ maszyna dławi się pamięcią
+  swap 17,9 GB użyte, 1,1 GB wolne  ⚠ model nie mieści się obok reszty
 
   ostatnie: prompt 258 tok (611 tok/s)   odpowiedź 214 tok (31,4 tok/s)
 
@@ -85,12 +85,27 @@ OLLAMA_HOST=http://192.168.1.10:11434 python3 llamascope.py
 ## W pasku menu (SwiftBar)
 
 Ten sam plik potrafi być wtyczką [SwiftBara](https://swiftbar.app) —
-jedno dowiązanie w katalogu wtyczek, odświeżanie co 5 sekund:
+dowiązanie w katalogu wtyczek, odświeżanie co 5 sekund. Nazwa pliku
+`llamascope.5s.py` to nie ozdoba: SwiftBar czyta z niej częstotliwość.
 
 ```bash
-ln -s "$PWD/llamascope.py" ~/Library/Application\ Support/SwiftBar/Plugins/llamascope.5s.py
+brew install --cask swiftbar
+
+KATALOG=~/Library/Application\ Support/SwiftBar/Plugins
+mkdir -p "$KATALOG"
+defaults write com.ameba.SwiftBar PluginDirectory -string "$KATALOG"
+
 chmod +x llamascope.py
+ln -s "$PWD/llamascope.py" "$KATALOG/llamascope.5s.py"
+
+open -a SwiftBar
 ```
+
+Katalog wtyczek trzeba utworzyć samemu — SwiftBar przed pierwszym
+uruchomieniem go nie ma i sam o niego pyta. Linia z `defaults` odpowiada
+na to pytanie z góry, więc nie trzeba niczego klikać. Trybu paskowego
+nie włącza się przełącznikiem: skrypt rozpoznaje go po zmiennej
+`SWIFTBAR`, którą SwiftBar ustawia swoim wtyczkom.
 
 W pasku widać wykres obciążenia GPU, a gdy dzieje się coś złego —
 konkretne ostrzeżenie zamiast wykresu: `⚠ prompt ucięty`,
@@ -103,8 +118,18 @@ Kliknięcie rozwija cały ekran z podglądu w terminalu.
 |---|---|
 | `GET /api/ps` | co jest załadowane, ile zajmuje, ile siedzi w GPU |
 | `ioreg -c AGXAccelerator` | obciążenie GPU, bez `sudo` i bez zależności |
-| `sysctl vm.swapusage` | czy maszyna zaczyna się dławić pamięcią |
+| `sysctl vm.swapusage` | czy **model** dołożył maszynie swapu |
 | log serwera Ollamy | ucięcia kontekstu i prędkość generowania |
+
+Ostrzeżenie o pamięci mówi o **pogorszeniu, które spowodował model**, a nie
+o stanie zastanym. Maszyna, która od rana siedzi na swapie, nie jest
+wiadomością — próg bezwzględny trzymał tu ostrzeżenie zapalone na okrągło
+i zamieniał je w tapetę. Punktem odniesienia jest najniższy stan
+zapamiętany wtedy, gdy Ollama nic nie trzymała; ostrzeżenie zapala się,
+gdy przy załadowanym modelu swapu przybyło o ponad gigabajt. Liczy się
+swap **użyty**, bo wolne miejsce niczego nie mówi: macOS sam powiększa
+plik wymiany i przy wejściu modelu 14B do pamięci wolne spadło z 1,4
+tylko do 1,1 GB, a użyte urosło z 13,6 do 17,9 GB.
 
 Log jest szukany kolejno w `/opt/homebrew/var/log/ollama.log`,
 `/usr/local/var/log/ollama.log` i `~/.ollama/logs/server.log`. Bez niego
@@ -147,10 +172,12 @@ API; the only trace is a `WARN` line in the server log, which LlamaScope
 watches for you.
 
 macOS on Apple Silicon, Python 3 from the system, no dependencies, no
-`sudo`, no configuration: `python3 llamascope.py`. Symlink the same file
-into SwiftBar's plugin folder as `llamascope.5s.py` to get it in the menu
-bar. It never sees your prompts or responses — that data is not present
-in any of the sources it reads.
+`sudo`, no configuration: `python3 llamascope.py`. For the menu bar,
+create SwiftBar's plugin folder — it does not exist before SwiftBar's
+first launch — and symlink the same file into it as `llamascope.5s.py`;
+the Polish section above has the exact commands. It never sees your
+prompts or responses — that data is not present in any of the sources
+it reads.
 
 **Known limit** (measured on Ollama 0.32.14): the `WARN` line only appears
 when a *single message* exceeds the context window. When a *conversation*

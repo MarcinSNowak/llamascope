@@ -87,6 +87,57 @@ def swap_gb():
     )
 
 
+# Punkt odniesienia dla swapu trzyma się w pliku, bo w pasku menu każde
+# odświeżenie to osobny proces i nie ma czego pamiętać między nimi.
+SWAP_BAZA = "/tmp/llamascope-swap.txt"
+SWAP_PROG = 1.0                          # GB — o tyle musi przybyć, żeby to był sygnał
+SWAP_WAZNOSC = 3600                      # s — po tylu punkt odniesienia wygasa
+
+
+def swap_pogorszony(uzyte, zaladowany):
+    """Czy swapu przybyło, odkąd Ollama niczego nie trzymała.
+
+    Próg bezwzględny się nie sprawdził: maszyna, która od rana siedzi na
+    swapie, trzymała ostrzeżenie zapalone na okrągło i zamieniła je
+    w tapetę. Interesuje nas pogorszenie, które sami spowodowaliśmy.
+
+    Patrzymy na swap **użyty**, nie na wolny. macOS sam powiększa plik
+    wymiany, więc wolne miejsce prawie nie drgnęło, gdy model 14B wszedł
+    do pamięci — 1,4 na 1,1 GB — podczas gdy użyty swap urósł w tym samym
+    czasie z 13,6 do 17,9 GB. Zmierzone 2026-09-06.
+
+    Punktem odniesienia jest **najniższy** stan zapamiętany wtedy, gdy
+    Ollama nic nie trzymała. Najniższy, bo przy ładowaniu modelu `/api/ps`
+    bywa jeszcze przez chwilę puste, a swap już rośnie; pojedynczy taki
+    odczyt zawyżyłby odniesienie i wyciszył ostrzeżenie na dobre. Punkt
+    wygasa po godzinie bez poprawy, żeby nadążał za maszyną.
+
+    Gdy punktu nie ma — bo model był załadowany, zanim nas uruchomiono —
+    nie ostrzegamy wcale, bo nie wiemy, co zastaliśmy.
+    """
+    if uzyte is None:
+        return False
+    teraz = time.time()
+    kiedy, baza = 0.0, None
+    try:
+        with open(SWAP_BAZA) as plik:
+            kiedy, baza = (float(x) for x in plik.read().split())
+    except (OSError, ValueError):
+        pass
+    if baza is not None and teraz - kiedy > SWAP_WAZNOSC:
+        baza = None
+    if not zaladowany:
+        if baza is None or uzyte <= baza:
+            kiedy, baza = teraz, uzyte
+        try:
+            with open(SWAP_BAZA, "w") as plik:
+                plik.write(f"{kiedy} {baza}")
+        except OSError:
+            pass
+        return False
+    return baza is not None and uzyte - baza >= SWAP_PROG
+
+
 def znacznik(iso):
     """Czas z logu → (napis HH:MM:SS, ile sekund temu)."""
     from datetime import datetime
@@ -177,7 +228,7 @@ def czas_do(iso):
     return f"{int(sekundy // 60)}:{int(sekundy % 60):02d}"
 
 
-def ekran(ps, gpu, historia, swap_u, swap_w, log):
+def ekran(ps, gpu, historia, swap_u, swap_w, swap_zle, log):
     w = shutil.get_terminal_size((80, 24)).columns
     L = []
     L.append(f"{JASNY}LlamaScope — Ollama na żywo{RESET}"
@@ -220,9 +271,8 @@ def ekran(ps, gpu, historia, swap_u, swap_w, log):
         L.append(f"       {SZARY}{sparkline(historia)}{RESET}")
 
     if swap_u is not None:
-        ostrzez = swap_w is not None and swap_w < 2.0
-        kolor = ZOLTY if ostrzez else SZARY
-        uwaga = "  ⚠ maszyna dławi się pamięcią" if ostrzez else ""
+        kolor = ZOLTY if swap_zle else SZARY
+        uwaga = "  ⚠ model nie mieści się obok reszty" if swap_zle else ""
         L.append(f"  swap {kolor}{lb(swap_u)} GB użyte, {lb(swap_w)} GB wolne{uwaga}{RESET}")
 
     L.append("")
@@ -285,6 +335,7 @@ def pasek_menu():
     log.odczytaj()
     ps = api("/api/ps")
     swap_u, swap_w = swap_gb()
+    swap_zle = swap_pogorszony(swap_u, bool(ps and ps.get("models")))
 
     # ── tytuł: jedna rzecz, najważniejsza z tego, co się dzieje ──
     alarm = None
@@ -292,7 +343,7 @@ def pasek_menu():
         alarm = "Ollama nie odpowiada"
     elif log.uciecie and znacznik(log.uciecie[0])[1] < 600:
         alarm = "prompt ucięty"
-    elif swap_w is not None and swap_w < 2.0:
+    elif swap_zle:
         alarm = "mało pamięci"
     elif ps.get("models"):
         m = ps["models"][0]
@@ -302,7 +353,7 @@ def pasek_menu():
     print(f"⚠ {alarm}" if alarm else (sparkline(proby) or "○"))
     print("---")
 
-    for linia in ekran(ps, gpu, proby, swap_u, swap_w, log)[2:]:
+    for linia in ekran(ps, gpu, proby, swap_u, swap_w, swap_zle, log)[2:]:
         czysta = re.sub(r"\x1b\[[0-9;]*m", "", linia).rstrip()
         if czysta.strip():
             print(czysta)
@@ -327,7 +378,9 @@ def main():
                 historia.append(gpu)
             log.odczytaj()
             swap_u, swap_w = swap_gb()
-            linie = ekran(api("/api/ps"), gpu, list(historia), swap_u, swap_w, log)
+            ps = api("/api/ps")
+            swap_zle = swap_pogorszony(swap_u, bool(ps and ps.get("models")))
+            linie = ekran(ps, gpu, list(historia), swap_u, swap_w, swap_zle, log)
             sys.stdout.write(f"{CSI}H{CSI}J" + "\n".join(linie) + "\n")
             sys.stdout.flush()
             time.sleep(ODSWIEZANIE)
