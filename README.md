@@ -34,6 +34,27 @@ limit=258 prompt=7260 keep=4 new=258
 
 LlamaScope czyta tę linię i pokazuje ją po ludzku.
 
+## Czego LlamaScope nie zobaczy
+
+Uczciwa granica, zmierzona 2026-09-06 na Ollamie 0.32.14. Serwer radzi
+sobie ze zbyt długim wejściem na **dwa różne sposoby**:
+
+| | pojedyncza wiadomość za duża | cała rozmowa za długa |
+|---|---|---|
+| co robi serwer | ucina tokeny od początku | wyrzuca całe najstarsze wiadomości |
+| co przeżywa | koniec wiadomości | instrukcja systemowa i najnowsze tury |
+| linia `WARN` w logu | **jest** | **nie ma** |
+| LlamaScope ostrzeże | **tak** | **nie** |
+
+Innymi słowy: **LlamaScope widzi ucięcie tylko wtedy, gdy sama najnowsza
+wiadomość nie mieści się w oknie.** Jeśli rozmowa w kliencie czatu rośnie
+i serwer po cichu wyrzuca stare tury, w logu nie ma o tym ani słowa —
+żadne narzędzie czytające log tego nie wykryje, łącznie z tym.
+
+Wykrycie tego drugiego przypadku wymaga stanięcia między klientem
+a Ollamą i czytania treści żądań. To osobne narzędzie i osobna decyzja
+o prywatności — świadomie nie ma go tutaj.
+
 ---
 
 ## Wymagania
@@ -130,6 +151,12 @@ macOS on Apple Silicon, Python 3 from the system, no dependencies, no
 into SwiftBar's plugin folder as `llamascope.5s.py` to get it in the menu
 bar. It never sees your prompts or responses — that data is not present
 in any of the sources it reads.
+
+**Known limit** (measured on Ollama 0.32.14): the `WARN` line only appears
+when a *single message* exceeds the context window. When a *conversation*
+grows too long, Ollama silently drops the oldest messages — keeping the
+system prompt and the newest turns — and logs nothing at all. No log-based
+tool can catch that case, this one included.
 
 ---
 
