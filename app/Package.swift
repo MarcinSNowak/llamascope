@@ -8,8 +8,8 @@ let package = Package(
     name: "LlamaScope",
     platforms: [.macOS(.v14)],
     targets: [
-        .target(name: "LlamaScopeRdzen"),
-        .executableTarget(name: "LlamaScope", dependencies: ["LlamaScopeRdzen"]),
-        .testTarget(name: "LlamaScopeRdzenTesty", dependencies: ["LlamaScopeRdzen"]),
+        .target(name: "LlamaScopeCore"),
+        .executableTarget(name: "LlamaScope", dependencies: ["LlamaScopeCore"]),
+        .testTarget(name: "LlamaScopeCoreTests", dependencies: ["LlamaScopeCore"]),
     ]
 )
