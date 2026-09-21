@@ -2,7 +2,7 @@
 import PackageDescription
 
 // Szczebel 0.5 specyfikacji: natywna aplikacja w pasku menu, niepodpisana.
-// Podział na bibliotekę i program wynika z §12 („rdzeń w jednym miejscu"):
+// Podział na bibliotekę i program wynika z §12 („rdzeń w jednym miejscu”):
 // logika rozpoznawania stanów ma być testowalna bez uruchamiania interfejsu.
 let package = Package(
     name: "LlamaScope",

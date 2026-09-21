@@ -47,7 +47,7 @@ public enum GPUReader {
     /// pozostałe są zgadywane i dlatego log zapisuje, która zadziałała.
     public static let knownClasses = ["AGXAccelerator", "IOAccelerator", "IOGPU"]
 
-    /// Też zgadywane poza pierwszym. „Device Utilization %" jest tym, co czyta
+    /// Też zgadywane poza pierwszym. „Device Utilization %” jest tym, co czyta
     /// wersja pythonowa i co było mierzone.
     public static let knownKeys = [
         "Device Utilization %",

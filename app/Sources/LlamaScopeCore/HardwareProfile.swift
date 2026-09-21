@@ -1,7 +1,7 @@
 import Foundation
 
 /// Wariant układu w obrębie jednej generacji. Wariantów jest więcej niż nazw
-/// generacji i różnią się liczbą rdzeni GPU, więc sama „M3" nie wystarcza,
+/// generacji i różnią się liczbą rdzeni GPU, więc sama „M3” nie wystarcza,
 /// żeby zrozumieć zgłoszenie od użytkownika.
 public enum ChipVariant: String, Sendable, Equatable {
     case base
@@ -31,12 +31,12 @@ public enum ChipFamily: Sendable, Equatable {
     case notAppleSilicon(name: String)
     case unrecognized(name: String)
 
-    /// Rozbiera łańcuch z `machdep.cpu.brand_string`, na przykład „Apple M2 Pro".
+    /// Rozbiera łańcuch z `machdep.cpu.brand_string`, na przykład „Apple M2 Pro”.
     public static func from(brandString: String) -> ChipFamily {
         let name = brandString.trimmingCharacters(in: .whitespacesAndNewlines)
         guard name.hasPrefix("Apple M") else {
-            // Wszystko, co nie zaczyna się od „Apple M", jest dla nas Intelem:
-            // „Intel(R) Core(TM) i7", cokolwiek zwróci Rosetta.
+            // Wszystko, co nie zaczyna się od „Apple M”, jest dla nas Intelem:
+            // „Intel(R) Core(TM) i7”, cokolwiek zwróci Rosetta.
             return .notAppleSilicon(name: name)
         }
 
