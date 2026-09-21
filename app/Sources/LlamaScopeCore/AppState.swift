@@ -39,6 +39,11 @@ public enum SwapAssessment: Sendable, Equatable {
 }
 
 /// Stany z §5 specyfikacji. Pierwszy pasujący decyduje o ikonie.
+///
+/// Sześć pierwszych to stany **Ollamy**. Dwa ostatnie to stany **naszej
+/// wiedzy o niej** i nie są ozdobnikiem: oba powstały dlatego, że bez nich
+/// awaria odczytu wyglądałaby jak spokój. To ta sama klasa kłamstwa, którą
+/// tym narzędziem tropimy u innych, więc nie wolno jej popełnić u siebie.
 public enum AppState: Sendable, Equatable {
     /// 1. Prompt ucięty — jedyny stan czytany wprost z logu.
     case promptTruncated(InputTruncation)
@@ -60,15 +65,35 @@ public enum AppState: Sendable, Equatable {
     /// pełną parą. To dokładnie ta klasa kłamstwa, którą tym narzędziem
     /// tropimy u innych.
     case loadedActivityUnknown(model: LoadedModel, reason: GPUReading)
+
+    /// Serwer nie odpowiada. Stan 6 („uśpiona") ma wyglądać na spokój, więc
+    /// martwy albo niewystartowany serwer nie może go udawać — inaczej
+    /// aplikacja uspokajałaby dokładnie wtedy, gdy nie ma czego uspokajać.
+    case ollamaNotResponding(reason: String)
 }
 
 public struct StateInput: Sendable {
     public var now: Date
-    public var models: [LoadedModel]
+    public var ollama: OllamaStatus
     public var gpu: GPUReading
     public var swap: SwapAssessment
     public var log: OllamaLogState
 
+    public init(
+        now: Date = Date(),
+        ollama: OllamaStatus,
+        gpu: GPUReading,
+        swap: SwapAssessment = .noBaseline,
+        log: OllamaLogState = OllamaLogState()
+    ) {
+        self.now = now
+        self.ollama = ollama
+        self.gpu = gpu
+        self.swap = swap
+        self.log = log
+    }
+
+    /// Wygoda dla testów i dla miejsc, w których serwer na pewno odpowiada.
     public init(
         now: Date = Date(),
         models: [LoadedModel],
@@ -76,11 +101,12 @@ public struct StateInput: Sendable {
         swap: SwapAssessment = .noBaseline,
         log: OllamaLogState = OllamaLogState()
     ) {
-        self.now = now
-        self.models = models
-        self.gpu = gpu
-        self.swap = swap
-        self.log = log
+        self.init(now: now, ollama: .running(models: models), gpu: gpu, swap: swap, log: log)
+    }
+
+    var models: [LoadedModel] {
+        if case let .running(models) = ollama { return models }
+        return []
     }
 }
 
@@ -95,6 +121,13 @@ public enum StateRecognizer {
     public static let workingAbovePercent = 5
 
     public static func recognize(_ input: StateInput) -> AppState {
+        // Przed wszystkim innym, bo gdy nie ma z kim rozmawiać, reszta
+        // odczytów opisuje maszynę, a nie Ollamę. Tak samo ustawia to
+        // wersja pythonowa.
+        if case let .notResponding(reason) = input.ollama {
+            return .ollamaNotResponding(reason: reason)
+        }
+
         if let truncation = input.log.lastTruncation,
            input.now.timeIntervalSince(truncation.time) <= truncationIsCurrentFor,
            input.now >= truncation.time {
