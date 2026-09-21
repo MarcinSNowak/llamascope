@@ -1,0 +1,64 @@
+# Źródło projektu Xcode. Plik .xcodeproj jest z tego generowany i też leży
+# w repozytorium — żeby otwarcie projektu wymagało samego Xcode, a nie
+# jeszcze XcodeGena. Kto zmienia strukturę celów, zmienia ten plik
+# i przepuszcza `xcodegen generate`; kto tylko czyta kod, nie musi wiedzieć,
+# że XcodeGen istnieje.
+#
+# Powód, dla którego projekt Xcode w ogóle tu jest: pakietu SwiftPM nie da
+# się zbudować do pakietu .app z Info.plist. Aplikacja w pasku menu bez
+# Info.plist z LSUIElement pokazuje ikonę w Docku i zabiera pasek menu
+# u góry ekranu, czyli robi dokładnie to, czego to narzędzie ma nie robić.
+
+name: LlamaScope
+options:
+  bundleIdPrefix: com.qshmobile
+  deploymentTarget:
+    macOS: "14.0"
+  createIntermediateGroups: true
+
+packages:
+  LlamaScopeCore:
+    path: Core
+
+targets:
+  LlamaScope:
+    type: application
+    platform: macOS
+    sources:
+      - path: App
+    dependencies:
+      - package: LlamaScopeCore
+        product: LlamaScopeCore
+    info:
+      path: App/Info.plist
+      properties:
+        # Bez tego aplikacja ma ikonę w Docku i własny pasek menu u góry.
+        # Narzędzie, które mieszka w pasku stanu, ma być w pasku stanu.
+        LSUIElement: true
+        CFBundleName: LlamaScope
+        CFBundleShortVersionString: "0.5"
+        CFBundleVersion: "1"
+        NSHumanReadableCopyright: "LlamaScope — MIT"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.qshmobile.LlamaScope
+        MARKETING_VERSION: "0.5"
+        SWIFT_VERSION: "5.0"
+        # Szczebel 0.5 jest niepodpisany świadomie (§14). Podpisywanie
+        # dochodzi razem z drugim celem dla pośrednika.
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: "NO"
+        ENABLE_HARDENED_RUNTIME: "NO"
+
+# Schemat wpisany wprost, a nie zostawiony Xcode do dorobienia u siebie.
+# Bez tego `xcodebuild -scheme LlamaScope` działa na tej maszynie i nie
+# działa na czyjejś, dopóki ktoś nie otworzy projektu ręcznie.
+schemes:
+  LlamaScope:
+    build:
+      targets:
+        LlamaScope: all
+    run:
+      config: Debug
+    archive:
+      config: Release

@@ -3,5 +3,12 @@ __pycache__/
 .DS_Store
 
 # Swift Package Manager
-app/.build/
+app/Core/.build/
 .swiftpm/
+
+# Xcode. Sam plik .xcodeproj jest w repozytorium świadomie — ma się otwierać
+# bez XcodeGena. Wylatują z niego tylko rzeczy osobiste: układ okien,
+# schematy użytkownika, stan nawigatora.
+xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/

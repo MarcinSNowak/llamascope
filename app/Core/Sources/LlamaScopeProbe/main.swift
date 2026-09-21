@@ -41,44 +41,16 @@ case .none:
     print("log Ollamy: NIE ZNALEZIONY — szukano w \(OllamaLogLocation.knownPaths.joined(separator: ", "))")
 }
 
-/// Jedno zdanie o stanie. Docelowo mieszka w interfejsie; tutaj jest po to,
-/// żeby dało się przeczytać to samo rozpoznawanie bez uruchamiania aplikacji.
-func describe(_ state: AppState) -> String {
-    switch state {
-    case let .promptTruncated(truncation):
-        let percent = Int((truncation.lostShare * 100).rounded())
-        return "PROMPT UCIĘTY — wysłane \(truncation.promptTokens) tokenów, "
-            + "przeczytane \(truncation.readTokens). Przepadło \(percent)%."
-    case let .modelOutsideGPU(model, bytes):
-        let gb = Double(bytes) / 1e9
-        return String(format: "POZA GPU — %@: %.1f GB liczy się na procesorze, będzie wolno.",
-                      model.name, gb)
-    case let .memoryRunningOut(grown):
-        return String(format: "PAMIĘĆ — swapu przybyło %.1f GB, odkąd Ollama nic nie trzymała.", grown)
-    case let .holdingMemoryIdle(model, releasesIn):
-        let when = releasesIn.map { " Zwolni za \(Int($0 / 60)) min \(Int($0.truncatingRemainder(dividingBy: 60))) s." } ?? ""
-        return String(format: "BEZCZYNNY — %@ trzyma %.1f GB i nic nie liczy.%@",
-                      model.name, Double(model.sizeBytes) / 1e9, when)
-    case let .working(model, generation):
-        let speed = generation.map { String(format: " %.1f tok/s", $0.tokensPerSecond) } ?? ""
-        return "PRACUJE — \(model.name)\(speed)"
-    case .asleep:
-        return "UŚPIONA — nic nie jest załadowane."
-    case let .loadedActivityUnknown(model, reason):
-        return "NIE WIEM — \(model.name) jest w pamięci, ale odczyt GPU się nie udał. \(reason.logLine)"
-    case let .ollamaNotResponding(reason):
-        return "OLLAMA NIE ODPOWIADA — \(reason)"
-    }
-}
-
 let monitor = Monitor()
 let follow = CommandLine.arguments.contains("--sledz")
 
 print("")
+print(StateText.detectionLimit)
+print("")
 if follow {
     var previous: String?
     while true {
-        let line = describe(await monitor.refresh())
+        let line = StateText.sentence(await monitor.refresh())
         // Wypisujemy przy zmianie, nie co sekundę — inaczej po minucie nie
         // da się odczytać, kiedy właściwie coś się wydarzyło.
         if line != previous {
@@ -88,5 +60,5 @@ if follow {
         try? await Task.sleep(for: Monitor.defaultInterval)
     }
 } else {
-    print(describe(await monitor.refresh()))
+    print(StateText.sentence(await monitor.refresh()))
 }
