@@ -1,6 +1,7 @@
 import Foundation
 import LlamaScopeCore
 import LlamaScopeProxyCore
+import LlamaScopeText
 import Network
 
 /// Ustawienia pośrednika. Wyłącznie zmienne środowiska — pośrednik nie ma
@@ -10,10 +11,18 @@ struct Settings {
     var upstream = URL(string: "http://127.0.0.1:11434")!
     var observations: URL?
     var toTerminal = true
+    /// Język rozstrzygnięty **raz**, przy starcie procesu. Aplikacja
+    /// podaje go wprost przez `LLAMASCOPE_LANG`, żeby panel i pośrednik
+    /// nie mogły mówić do tej samej osoby w dwóch językach; uruchomiony
+    /// z ręki pośrednik pyta system sam.
+    var language = Language.preferred()
 
     static func fromEnvironment() -> Settings {
         var settings = Settings()
         let environment = ProcessInfo.processInfo.environment
+        if let code = environment["LLAMASCOPE_LANG"], let language = Language(rawValue: code) {
+            settings.language = language
+        }
         if let port = environment["LLAMASCOPE_PORT"].flatMap(UInt16.init) {
             settings.port = port
         }
@@ -32,13 +41,16 @@ actor ProxyState {
     private var calibrator = Calibrator()
     private var maximums: [String: Int] = [:]
     private var asked: Set<String> = []
+    private let language: Language
+
+    init(language: Language) { self.language = language }
 
     func analyse(
         path: String, body: JSONValue, window: ContextWindow?, reportedTokens: Int?
     ) -> RequestReport? {
         RequestAnalyst.analyse(
             path: path, body: body, window: window,
-            reportedTokens: reportedTokens, calibrator: &calibrator
+            reportedTokens: reportedTokens, calibrator: &calibrator, in: language
         )
     }
 

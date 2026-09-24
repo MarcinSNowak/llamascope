@@ -1,4 +1,5 @@
 import Foundation
+import LlamaScopeText
 
 /// Ścieżki, które w ogóle niosą prompt.
 public enum ProxyPaths {
@@ -28,10 +29,23 @@ public struct ContextWindow: Sendable, Equatable {
         case explicitOption
         case loadedModel
 
-        public var describedInPolish: String {
+        /// Nazwa do pliku obserwacji, **niezależna od języka**. Plik
+        /// obserwacji to dane, nie zdanie: wartość pola, która zmienia się
+        /// razem z ustawieniami systemu, psuje każde porównanie dwóch
+        /// przebiegów i każdy skrypt, który po nich przejdzie.
+        public var key: String {
             switch self {
             case .explicitOption: return "options.num_ctx"
-            case .loadedModel: return "załadowany model"
+            case .loadedModel: return "loaded_model"
+            }
+        }
+
+        public func described(in language: Language) -> String {
+            switch (self, language) {
+            // Nazwa pola w API, nie słowo — nie tłumaczy się.
+            case (.explicitOption, _): return "options.num_ctx"
+            case (.loadedModel, .polish): return "załadowany model"
+            case (.loadedModel, .english): return "the loaded model"
             }
         }
     }
@@ -103,10 +117,11 @@ public enum RequestAnalyst {
         body: JSONValue,
         window: ContextWindow?,
         reportedTokens: Int?,
-        calibrator: inout Calibrator
+        calibrator: inout Calibrator,
+        in language: Language
     ) -> RequestReport? {
         let model = body["model"]?.stringValue ?? "?"
-        let parts = PromptBreakdown.parts(of: body)
+        let parts = PromptBreakdown.parts(of: body, in: language)
         let characters = parts.reduce(0) { $0 + $1.characters }
         guard characters > 0 else { return nil }
 
@@ -129,7 +144,7 @@ public enum RequestAnalyst {
                 if ProxyPaths.isConversation(path) {
                     let budget = Int(Double(window.tokens) * band.high)
                     let outcome = PromptBreakdown.conversationVictims(
-                        in: parts, characterBudget: budget
+                        in: parts, characterBudget: budget, in: language
                     )
                     lost = outcome.lost
                     lostTurns = outcome.lostTurns
@@ -137,7 +152,8 @@ public enum RequestAnalyst {
                 } else {
                     lost = PromptBreakdown.victims(
                         in: parts,
-                        charactersCut: Int(Double(low - window.tokens) * band.high)
+                        charactersCut: Int(Double(low - window.tokens) * band.high),
+                        in: language
                     )
                 }
             } else if high > window.tokens {

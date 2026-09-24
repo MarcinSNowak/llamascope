@@ -1,6 +1,7 @@
 import AppKit
 import Darwin
 import LlamaScopeCore
+import LlamaScopeText
 import SwiftUI
 
 /// Włącznik pośrednika (§12).
@@ -16,6 +17,12 @@ final class ProxyControl: ObservableObject {
 
     private let port: UInt16 = 11435
     private var process: Process?
+    private let language: Language
+
+    init(language: Language) {
+        self.language = language
+        Self.observe(self)
+    }
 
     /// Program leży w `Contents/MacOS/` obok aplikacji — jest częścią
     /// pakietu, ale osobnym plikiem wykonywalnym.
@@ -24,14 +31,16 @@ final class ProxyControl: ObservableObject {
             .appendingPathComponent("Contents/MacOS/LlamaScopeProxy")
     }
 
-    init() {
-        // Aplikacja mogła zostać ubita, a pośrednik przeżyć. Pytamy port,
-        // zamiast zakładać, że zastaliśmy czysto.
-        refreshWhenIdle()
+    /// Aplikacja mogła zostać ubita, a pośrednik przeżyć. Pytamy port,
+    /// zamiast zakładać, że zastaliśmy czysto — i zamawiamy sprzątanie
+    /// przy zamykaniu, żeby nie zostawiać po sobie procesu, którego
+    /// następne uruchomienie rozpozna już tylko jako obcy.
+    private static func observe(_ control: ProxyControl) {
+        control.refreshWhenIdle()
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main
-        ) { [weak self] _ in
-            MainActor.assumeIsolated { self?.stop() }
+        ) { [weak control] _ in
+            MainActor.assumeIsolated { control?.stop() }
         }
     }
 
@@ -45,7 +54,7 @@ final class ProxyControl: ObservableObject {
         // uruchomiłoby drugi proces, o którym nic byśmy już nie wiedzieli.
         guard !presence.isRunning, process == nil else { return }
         guard FileManager.default.isExecutableFile(atPath: executable.path) else {
-            presence = .failed(reason: "nie znalazłem programu pośrednika w pakiecie aplikacji")
+            presence = .failed(reason: PanelText.proxyFailure(.executableMissing, in: language))
             return
         }
         if Self.somethingListens(on: port) {
@@ -57,6 +66,10 @@ final class ProxyControl: ObservableObject {
         process.executableURL = executable
         var environment = ProcessInfo.processInfo.environment
         environment["LLAMASCOPE_PORT"] = String(port)
+        // Jeden język na dwa procesy. Bez tego pośrednik pytałby system
+        // sam i przy nietypowych ustawieniach mógłby odpowiedzieć inaczej
+        // niż panel, który go przed chwilą włączył.
+        environment["LLAMASCOPE_LANG"] = language.rawValue
         environment["LLAMASCOPE_OBSERVATIONS"] = AppLog.defaultDirectory
             .appendingPathComponent("obserwacje.jsonl").path
         process.environment = environment
@@ -65,13 +78,19 @@ final class ProxyControl: ObservableObject {
         // proces, który ją zapełnił.
         process.standardOutput = FileHandle.nullDevice
         process.standardError = FileHandle.nullDevice
+        // Język bierzemy tu, a nie w domknięciu: domknięcie biegnie po
+        // zakończeniu procesu i `self` może już nie żyć, a zdanie o awarii
+        // jest wtedy potrzebne najbardziej.
+        let language = self.language
         process.terminationHandler = { [weak self] finished in
             let status = finished.terminationStatus
             Task { @MainActor in
                 self?.process = nil
                 self?.presence = status == 0 || status == SIGTERM
                     ? .off
-                    : .failed(reason: "pośrednik zakończył się z kodem \(status)")
+                    : .failed(reason: PanelText.proxyFailure(
+                        .exited(code: status), in: language
+                    ))
             }
         }
 
@@ -133,7 +152,9 @@ final class ProxyControl: ObservableObject {
                 }
             }
             if process?.isRunning == true {
-                presence = .failed(reason: "proces działa, ale nie zajął portu \(port)")
+                presence = .failed(reason: PanelText.proxyFailure(
+                    .didNotTakePort(port), in: language
+                ))
             }
         }
     }

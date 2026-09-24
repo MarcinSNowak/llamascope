@@ -212,9 +212,13 @@ public final class Monitor: ObservableObject {
         // Zmiany, nie odczyty. Stan zmienia się kilkanaście razy dziennie,
         // odczyt zdarza się 86 400 razy — zapisywanie każdego zamieniłoby
         // log w wykres, po którym nie da się niczego znaleźć.
-        let kind = StateText.shortLabel(fresh)
+        // Log zawsze po polsku, niezależnie od języka panelu: to jest
+        // materiał do zgłoszenia i czyta go ten, kto pisze tę aplikację.
+        // Zgłoszenie w języku zgłaszającego byłoby uprzejme i o połowę
+        // mniej użyteczne.
+        let kind = StateText.shortLabel(fresh, in: .polish)
         if kind != lastLoggedKind {
-            sources.record("stan: \(StateText.sentence(fresh))")
+            sources.record("stan: \(StateText.sentence(fresh, in: .polish))")
             // Przy każdym przejściu do niewiedzy zapisujemy, na czym
             // dokładnie stanął odczyt GPU — bez tego zgłoszenie „pokazuje
             // znak zapytania” jest nie do odróżnienia od żadnego innego.

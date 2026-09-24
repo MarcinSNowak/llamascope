@@ -1,4 +1,5 @@
 import LlamaScopeCore
+import LlamaScopeText
 import SwiftUI
 
 /// Panel spod ikony. Układ z §7 i jego trzy reguły:
@@ -16,6 +17,11 @@ struct StatusPanel: View {
     @ObservedObject var monitor: Monitor
     @ObservedObject var proxy: ProxyControl
 
+    /// Rozstrzygnięty raz, przy starcie aplikacji, i podany tutaj wprost.
+    /// Widok, który sam pyta system o język, nie da się obejrzeć w drugim
+    /// języku inaczej niż przez przestawienie całego systemu.
+    let language: Language
+
     /// Potwierdzenie zwolnienia pamięci. §7: pytamy tylko wtedy, gdy GPU nie
     /// jest przy zerze, czyli gdy grozi przerwanie komuś generowania.
     @State private var confirmingRelease = false
@@ -25,14 +31,14 @@ struct StatusPanel: View {
             header
             Divider()
             details
-            if let advice = StateText.howToFix(monitor.state) {
+            if let advice = StateText.howToFix(monitor.state, in: language) {
                 Divider()
                 Text(advice)
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let problem = monitor.lastActionProblem {
-                Text("Nie udało się: \(problem)")
+                Text(PanelText.actionFailed(problem, in: language))
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -41,7 +47,7 @@ struct StatusPanel: View {
             // Wymóg z §5, nie ozdoba: bez tego zdania obietnica „powiem Ci,
             // gdy model przestanie czytać" jest nieprawdziwa dla każdego,
             // kto prowadzi z modelem rozmowę.
-            Text(StateText.detectionLimit)
+            Text(StateText.detectionLimit(in: language))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -56,7 +62,7 @@ struct StatusPanel: View {
     private var header: some View {
         HStack(spacing: 8) {
             MenuBarIcon(state: monitor.state, history: monitor.history)
-            Text(StateText.headline(monitor.state))
+            Text(StateText.headline(monitor.state, in: language))
                 .font(.headline)
                 // Ten sam kolor co ikona. Nagłówek jest pierwszą rzeczą,
                 // na którą pada wzrok po otwarciu panelu.
@@ -67,13 +73,15 @@ struct StatusPanel: View {
     @ViewBuilder
     private var details: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(StateText.sentence(monitor.state))
+            Text(StateText.sentence(monitor.state, in: language))
                 .font(.callout)
                 .fixedSize(horizontal: false, vertical: true)
 
             ForEach(monitor.models, id: \.name) { model in
-                row(model.name, value: StateText.gigabytesText(model.sizeBytes)
-                    + (model.bytesOutsideGPU == 0 ? ", w GPU" : ", częściowo poza GPU"))
+                row(model.name, value: StateText.gigabytesText(model.sizeBytes, in: language)
+                    + PanelText.whereItRuns(
+                        outsideGPU: model.bytesOutsideGPU > 0, in: language
+                    ))
             }
 
             if let percent = monitor.history.samples.last ?? nil {
@@ -84,13 +92,13 @@ struct StatusPanel: View {
             // cokolwiek się utnie. Dlatego stoi w panelu na stałe, a nie
             // tylko wtedy, gdy jest źle.
             if let prompt = monitor.lastPrompt {
-                row("Okno kontekstu", value: StateText.windowFill(prompt))
+                row(PanelText.contextWindow(in: language), value: StateText.windowFill(prompt, in: language))
             }
 
             // Podpisane „ostatnia", bo tempo trwającej odpowiedzi nie
             // istnieje — Ollama zapisuje je dopiero na końcu.
             if let generation = monitor.lastGeneration {
-                row("Ostatnia odpowiedź", value: StateText.lastAnswer(generation))
+                row(PanelText.lastAnswer(in: language), value: StateText.lastAnswer(generation, in: language))
             }
         }
     }
@@ -111,16 +119,16 @@ struct StatusPanel: View {
                 // Model teraz liczy. Pytamy raz i mówimy wprost, co się
                 // stanie — bo przerwane generowanie wygląda jak awaria.
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Model teraz liczy. Zwolnienie przerwie to, co robi.")
+                    Text(PanelText.releaseWillInterrupt(in: language))
                         .font(.callout)
                         .fixedSize(horizontal: false, vertical: true)
                     HStack {
-                        Button("Zwolnij mimo to") { release(model.name) }
-                        Button("Anuluj") { confirmingRelease = false }
+                        Button(PanelText.releaseAnyway(in: language)) { release(model.name) }
+                        Button(PanelText.cancel(in: language)) { confirmingRelease = false }
                     }
                 }
             } else {
-                Button("Zwolnij teraz") {
+                Button(PanelText.releaseNow(in: language)) {
                     if isBusy {
                         confirmingRelease = true
                     } else {
@@ -132,7 +140,7 @@ struct StatusPanel: View {
             // Wyłącznie jako cofnięcie poprzedniego kliknięcia (§7). Listy
             // modeli do wyboru tu nie ma i nie będzie — w tej chwili
             // przestalibyśmy być wskaźnikiem, a zaczęli być menedżerem.
-            Button("Załaduj ponownie \(name)") {
+            Button(PanelText.loadAgain(name, in: language)) {
                 Task { await monitor.loadAgain() }
             }
         }
@@ -145,16 +153,16 @@ struct StatusPanel: View {
     private var proxySection: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Text(ProxyPresenceText.headline(proxy.presence))
+                Text(ProxyPresenceText.headline(proxy.presence, in: language))
                     .font(.callout)
                 Spacer(minLength: 12)
-                Button(proxy.presence.isRunning ? "Wyłącz" : "Włącz") {
+                Button(PanelText.turnProxy(on: !proxy.presence.isRunning, in: language)) {
                     proxy.toggle()
                 }
                 .disabled(isProxyStarting)
             }
 
-            Text(ProxyPresenceText.sentence(proxy.presence))
+            Text(ProxyPresenceText.sentence(proxy.presence, in: language))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -164,12 +172,12 @@ struct StatusPanel: View {
             // §9 obiecuje o całym narzędziu, i człowiek ma o tym przeczytać
             // w chwili, w której to się dzieje — nie w dokumentacji.
             if proxy.presence.isRunning {
-                Text(ProxyPresenceText.seesPrompts)
+                Text(ProxyPresenceText.seesPrompts(in: language))
                     .font(.caption)
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            if let advice = ProxyPresenceText.howToFix(proxy.presence) {
+            if let advice = ProxyPresenceText.howToFix(proxy.presence, in: language) {
                 Text(advice)
                     .font(.caption)
                     .textSelection(.enabled)
@@ -186,12 +194,14 @@ struct StatusPanel: View {
     private var bottomRow: some View {
         HStack {
             if let refresh = monitor.lastRefresh {
-                Text("odczyt \(refresh.formatted(date: .omitted, time: .standard))")
+                Text(PanelText.lastRefresh(
+                    refresh.formatted(date: .omitted, time: .standard), in: language
+                ))
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button("Zakończ") { NSApplication.shared.terminate(nil) }
+            Button(PanelText.quit(in: language)) { NSApplication.shared.terminate(nil) }
                 .keyboardShortcut("q")
         }
     }

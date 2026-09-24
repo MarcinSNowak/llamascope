@@ -15,6 +15,7 @@
 		435D9A12EF53A3543D78E3E6 /* Upstream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4879E9B9941E0E6CCC3CC24A /* Upstream.swift */; };
 		645482791464902F8CD670F0 /* ProxyControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A042CC402302EFB6AFBC1E4 /* ProxyControl.swift */; };
 		77DC1B89C507E87338404C5D /* LlamaScopeCore in Frameworks */ = {isa = PBXBuildFile; productRef = BC3258EF5F1FF3E8BD58C0E6 /* LlamaScopeCore */; };
+		8E007E07B49DF720B2F3CE73 /* LlamaScopeText in Frameworks */ = {isa = PBXBuildFile; productRef = 9DECD14476CE692FC290502B /* LlamaScopeText */; };
 		95E8583740D85826C5B8DB74 /* StatusPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D10D17ED7EECEDDEFA7AD7 /* StatusPanel.swift */; };
 		99F9EBE42771D56080C8817D /* LlamaScopeProxyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0D80DC65E037BDCF1DAECCAD /* LlamaScopeProxyCore */; };
 		A5BE150435B6069482EFC4F9 /* LlamaScopeProxy in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = B29462BC76BB1A8198F84C65 /* LlamaScopeProxy */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -77,6 +78,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1DC761E0172D07AA5A7786D4 /* LlamaScopeCore in Frameworks */,
+				8E007E07B49DF720B2F3CE73 /* LlamaScopeText in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -189,6 +191,7 @@
 			name = LlamaScope;
 			packageProductDependencies = (
 				C7C6C267E490B5DB3CAC6FCA /* LlamaScopeCore */,
+				9DECD14476CE692FC290502B /* LlamaScopeText */,
 			);
 			productName = LlamaScope;
 			productReference = 9E3EB605A65B3C912DBEAA60 /* LlamaScope.app */;
@@ -499,6 +502,10 @@
 		0D80DC65E037BDCF1DAECCAD /* LlamaScopeProxyCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = LlamaScopeProxyCore;
+		};
+		9DECD14476CE692FC290502B /* LlamaScopeText */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LlamaScopeText;
 		};
 		BC3258EF5F1FF3E8BD58C0E6 /* LlamaScopeCore */ = {
 			isa = XCSwiftPackageProductDependency;

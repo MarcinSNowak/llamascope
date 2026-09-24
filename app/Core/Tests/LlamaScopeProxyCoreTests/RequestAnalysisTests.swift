@@ -1,3 +1,4 @@
+import LlamaScopeText
 import XCTest
 @testable import LlamaScopeProxyCore
 
@@ -40,7 +41,7 @@ final class PromptBreakdownTests: XCTestCase {
          "messages":[{"role":"user","content":"cześć"},
                      {"role":"assistant","content":"witaj"}]}
         """)
-        let parts = PromptBreakdown.parts(of: body)
+        let parts = PromptBreakdown.parts(of: body, in: .polish)
 
         XCTAssertEqual(parts.map(\.kind), [.tools, .system, .turn, .turn])
         XCTAssertEqual(parts[1].characters, "jesteś pomocny".count)
@@ -53,7 +54,7 @@ final class PromptBreakdownTests: XCTestCase {
     func testASystemRoleInsideMessagesIsNotATurn() {
         let parts = PromptBreakdown.parts(of: RequestSamples.chat(
             messages: [("system", "reguły"), ("user", "pytanie")]
-        ))
+        ), in: .polish)
         XCTAssertEqual(parts.map(\.kind), [.system, .turn])
         XCTAssertEqual(parts[0].label, "instrukcja systemowa")
     }
@@ -65,7 +66,7 @@ final class PromptBreakdownTests: XCTestCase {
         {"model":"gpt","messages":[{"role":"user","content":[
             {"type":"text","text":"pierwszy"},{"type":"text","text":"drugi"}]}]}
         """)
-        XCTAssertEqual(PromptBreakdown.parts(of: body).first?.characters, "pierwszydrugi".count)
+        XCTAssertEqual(PromptBreakdown.parts(of: body, in: .polish).first?.characters, "pierwszydrugi".count)
     }
 
     func testToolCallsInsideAMessageAreCounted() {
@@ -73,11 +74,11 @@ final class PromptBreakdownTests: XCTestCase {
         {"model":"m","messages":[{"role":"assistant","content":"",
           "tool_calls":[{"function":{"name":"pogoda","arguments":"{}"}}]}]}
         """)
-        XCTAssertGreaterThan(PromptBreakdown.parts(of: body).first?.characters ?? 0, 20)
+        XCTAssertGreaterThan(PromptBreakdown.parts(of: body, in: .polish).first?.characters ?? 0, 20)
     }
 
     func testEmptyRequestHasNothingToBreakDown() {
-        XCTAssertTrue(PromptBreakdown.parts(of: RequestSamples.body(#"{"model":"m"}"#)).isEmpty)
+        XCTAssertTrue(PromptBreakdown.parts(of: RequestSamples.body(#"{"model":"m"}"#), in: .polish).isEmpty)
     }
 }
 
@@ -97,7 +98,7 @@ final class ConversationVictimsTests: XCTestCase {
     /// dla którego log Ollamy o tym milczy.
     func testTheOldestTurnsFallOutAndTheNewestSurvive() {
         let outcome = PromptBreakdown.conversationVictims(
-            in: parts(turns: [100, 100, 100, 100]), characterBudget: 250
+            in: parts(turns: [100, 100, 100, 100]), characterBudget: 250, in: .polish
         )
         XCTAssertEqual(outcome.lost, ["wiadomość 1 (user) — cała", "wiadomość 2 (user) — cała"])
         XCTAssertFalse(outcome.overflowed)
@@ -108,7 +109,7 @@ final class ConversationVictimsTests: XCTestCase {
     /// (100) wchodzi, starsza już nie.
     func testTheSystemPromptSurvivesAndEatsTheBudget() {
         let outcome = PromptBreakdown.conversationVictims(
-            in: parts(turns: [100, 100], system: 200), characterBudget: 350
+            in: parts(turns: [100, 100], system: 200), characterBudget: 350, in: .polish
         )
         XCTAssertTrue(outcome.lost.contains("wiadomość 1 (user) — cała"))
         XCTAssertTrue(outcome.lost.contains("(instrukcja systemowa przeżywa — Ollama ją zachowuje)"))
@@ -120,7 +121,7 @@ final class ConversationVictimsTests: XCTestCase {
     /// wygląda na zmierzoną, a jest doliczona.
     func testTheNoteAboutTheSystemPromptIsNotCountedAsALostTurn() {
         let outcome = PromptBreakdown.conversationVictims(
-            in: parts(turns: [100, 100], system: 200), characterBudget: 350
+            in: parts(turns: [100, 100], system: 200), characterBudget: 350, in: .polish
         )
         XCTAssertEqual(outcome.lostTurns, 1)
         XCTAssertEqual(outcome.lost.count, 2, "jedna tura i jeden dopisek")
@@ -131,21 +132,21 @@ final class ConversationVictimsTests: XCTestCase {
     /// log Ollamy **widzi**. W każdym innym wypadku widzi tylko pośrednik.
     func testOverflowIsTheOnlyCaseTheOllamaLogCanSee() {
         let overflow = PromptBreakdown.conversationVictims(
-            in: parts(turns: [5000]), characterBudget: 400
+            in: parts(turns: [5000]), characterBudget: 400, in: .polish
         )
         XCTAssertTrue(overflow.overflowed)
         XCTAssertEqual(overflow.lost.count, 1)
         XCTAssertTrue(overflow.lost[0].contains("po tokenach"))
 
         let quiet = PromptBreakdown.conversationVictims(
-            in: parts(turns: [300, 300, 300]), characterBudget: 400
+            in: parts(turns: [300, 300, 300]), characterBudget: 400, in: .polish
         )
         XCTAssertFalse(quiet.overflowed, "wypadnięcie starych tur jest dla logu niewidoczne")
     }
 
     func testNothingIsLostWhenEverythingFits() {
         let outcome = PromptBreakdown.conversationVictims(
-            in: parts(turns: [10, 10]), characterBudget: 1000
+            in: parts(turns: [10, 10]), characterBudget: 1000, in: .polish
         )
         XCTAssertTrue(outcome.lost.isEmpty)
         XCTAssertFalse(outcome.overflowed)
@@ -161,7 +162,7 @@ final class RequestAnalystTests: XCTestCase {
         RequestAnalyst.analyse(
             path: path, body: body,
             window: window.map { ContextWindow(tokens: $0, source: .explicitOption) },
-            reportedTokens: reported, calibrator: &calibrator
+            reportedTokens: reported, calibrator: &calibrator, in: .polish
         )
     }
 
@@ -369,7 +370,7 @@ final class ProxyTextTests: XCTestCase {
     func testAnInvisibleLossSaysSoOutLoud() {
         let lines = ProxyText.lines(for: report(
             assessment: .truncated, visible: false, lost: ["wiadomość 1 (user) — cała"]
-        ))
+        ), in: .polish)
         XCTAssertTrue(lines.contains { $0.contains("widzi to tylko pośrednik") })
         XCTAssertTrue(lines.contains { $0.contains("wypadło z rozmowy") })
     }
@@ -382,7 +383,7 @@ final class ProxyTextTests: XCTestCase {
         lost.append("(instrukcja systemowa przeżywa — Ollama ją zachowuje)")
         let lines = ProxyText.lines(for: report(
             assessment: .truncated, visible: false, lost: lost
-        ))
+        ), in: .polish)
         XCTAssertLessThanOrEqual(lines.count, 11)
         XCTAssertTrue(lines.contains { $0.contains("…i jeszcze 19") })
         XCTAssertTrue(lines.contains { $0.contains("instrukcja systemowa przeżywa") },
@@ -396,13 +397,16 @@ final class ProxyTextTests: XCTestCase {
 
     func testAShortListIsShownInFull() {
         let lost = (1...4).map { "wiadomość \($0) (user) — cała" }
-        let lines = ProxyText.lines(for: report(assessment: .truncated, lost: lost))
+        let lines = ProxyText.lines(for: report(assessment: .truncated, lost: lost), in: .polish)
         XCTAssertFalse(lines.contains { $0.contains("…i jeszcze") })
         XCTAssertTrue(lines.contains { $0.contains("wiadomość 4") })
     }
 
     func testAVisibleTruncationUsesTheOtherVerb() {
-        let lines = ProxyText.lines(for: report(assessment: .truncated, lost: ["prompt — początek, ok. 90%"]))
+        let lines = ProxyText.lines(
+            for: report(assessment: .truncated, lost: ["prompt — początek, ok. 90%"]),
+            in: .polish
+        )
         XCTAssertTrue(lines.contains { $0.contains("ucięte: prompt") })
         XCTAssertFalse(lines.contains { $0.contains("tylko pośrednik") })
     }
@@ -411,7 +415,8 @@ final class ProxyTextTests: XCTestCase {
     /// w żądaniu, więc rada „options.num_ctx" byłaby tam radą donikąd.
     func testAdviceForOpenAIPathsDoesNotTellYouToSetSomethingYouCannotSet() {
         let advice = ProxyText.advice(
-            for: report(assessment: .truncated, path: "/v1/chat/completions"), modelMaximum: nil
+            for: report(assessment: .truncated, path: "/v1/chat/completions"),
+            modelMaximum: nil, in: .polish
         )
         XCTAssertTrue(advice.contains("OLLAMA_CONTEXT_LENGTH"))
         XCTAssertFalse(advice.contains("options.num_ctx"))
@@ -421,7 +426,8 @@ final class ProxyTextTests: XCTestCase {
     /// na jedyną prawdziwą: skróć prompt.
     func testAdviceStopsProposingWindowsTheModelCannotDo() {
         let advice = ProxyText.advice(
-            for: report(assessment: .truncated, high: 40_000), modelMaximum: 8192
+            for: report(assessment: .truncated, high: 40_000),
+            modelMaximum: 8192, in: .polish
         )
         XCTAssertTrue(advice.contains("najwyżej"))
         XCTAssertTrue(advice.contains("skróć prompt"))
@@ -434,7 +440,7 @@ final class ProxyTextTests: XCTestCase {
     }
 
     func testAQuietRequestIsOneLineAndSaysHowSureWeAre() {
-        let lines = ProxyText.lines(for: report(assessment: .fine))
+        let lines = ProxyText.lines(for: report(assessment: .fine), in: .polish)
         XCTAssertEqual(lines.count, 1)
         XCTAssertTrue(lines[0].contains("kalibracja z 4 próbek"))
     }

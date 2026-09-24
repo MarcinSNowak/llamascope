@@ -1,5 +1,6 @@
 import Foundation
 import IOKit
+import LlamaScopeText
 
 /// Wynik próby odczytania obciążenia GPU.
 ///
@@ -24,19 +25,45 @@ public enum GPUReading: Sendable, Equatable {
         return nil
     }
 
-    public var logLine: String {
-        switch self {
-        case let .reading(percent, serviceClass, key):
-            return "GPU: \(percent)% | klasa \(serviceClass) | klucz „\(key)”"
-        case let .classNotFound(searched):
-            return "GPU: BRAK ODCZYTU — żadnej z klas \(searched.joined(separator: ", ")) "
-                + "nie ma w IORegistry. To nie jest zero obciążenia."
-        case let .statisticsNotFound(serviceClass):
-            return "GPU: BRAK ODCZYTU — klasa \(serviceClass) istnieje, ale nie ma "
-                + "słownika PerformanceStatistics. To nie jest zero obciążenia."
-        case let .keyNotFound(serviceClass, available):
-            return "GPU: BRAK ODCZYTU — klasa \(serviceClass) ma statystyki, ale żadnego "
-                + "ze znanych kluczy. Dostępne: \(available.joined(separator: ", "))"
+    /// Wiersz do **logu**, zawsze po polsku. Log jest materiałem do
+    /// zgłoszenia i czyta go ten, kto pisze tę aplikację — jego język nie
+    /// ma nic wspólnego z językiem, w którym ktoś ogląda pasek menu.
+    public var logLine: String { reason(in: .polish) }
+
+    /// To samo zdanie w języku, w którym mówi reszta interfejsu. Wchodzi
+    /// w zdanie o stanie „nie wiem, czy liczy", więc gdyby zostało tylko
+    /// po polsku, angielski panel kończyłby każdy taki komunikat zdaniem
+    /// w obcym języku.
+    public func reason(in language: Language) -> String {
+        switch language {
+        case .polish:
+            switch self {
+            case let .reading(percent, serviceClass, key):
+                return "GPU: \(percent)% | klasa \(serviceClass) | klucz „\(key)”"
+            case let .classNotFound(searched):
+                return "GPU: BRAK ODCZYTU — żadnej z klas \(searched.joined(separator: ", ")) "
+                    + "nie ma w IORegistry. To nie jest zero obciążenia."
+            case let .statisticsNotFound(serviceClass):
+                return "GPU: BRAK ODCZYTU — klasa \(serviceClass) istnieje, ale nie ma "
+                    + "słownika PerformanceStatistics. To nie jest zero obciążenia."
+            case let .keyNotFound(serviceClass, available):
+                return "GPU: BRAK ODCZYTU — klasa \(serviceClass) ma statystyki, ale żadnego "
+                    + "ze znanych kluczy. Dostępne: \(available.joined(separator: ", "))"
+            }
+        case .english:
+            switch self {
+            case let .reading(percent, serviceClass, key):
+                return "GPU: \(percent)% | class \(serviceClass) | key \(key)"
+            case let .classNotFound(searched):
+                return "GPU: NO READING — none of the classes \(searched.joined(separator: ", ")) "
+                    + "exists in the IORegistry. This is not zero load."
+            case let .statisticsNotFound(serviceClass):
+                return "GPU: NO READING — class \(serviceClass) exists but carries no "
+                    + "PerformanceStatistics dictionary. This is not zero load."
+            case let .keyNotFound(serviceClass, available):
+                return "GPU: NO READING — class \(serviceClass) has statistics but none of "
+                    + "the keys we know. Available: \(available.joined(separator: ", "))"
+            }
         }
     }
 }

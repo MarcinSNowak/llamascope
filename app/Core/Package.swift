@@ -18,6 +18,9 @@ let package = Package(
     name: "LlamaScope",
     platforms: [.macOS(.v14)],
     products: [
+        // Język i liczby. Osobno, bo używają tego oba rdzenie, a nie wolno
+        // im się przez to zobaczyć nawzajem — powód przy celu niżej.
+        .library(name: "LlamaScopeText", targets: ["LlamaScopeText"]),
         .library(name: "LlamaScopeCore", targets: ["LlamaScopeCore"]),
         // Osobny produkt, żeby cel pośrednika w projekcie Xcode miał się
         // do czego podpiąć. Aplikacja go nie wymienia i wymieniać nie ma.
@@ -26,7 +29,14 @@ let package = Package(
         .executable(name: "LlamaScopeProxy", targets: ["LlamaScopeProxy"]),
     ],
     targets: [
-        .target(name: "LlamaScopeCore"),
+        // Wybór języka i odmiana liczb. Ma **zero** zależności i taki ma
+        // zostać. Siedzi osobno, bo potrzebują go oba rdzenie, a gdyby
+        // mieszkał w `LlamaScopeCore`, pośrednik musiałby ściągnąć do
+        // siebie cały rdzeń razem z `OllamaClient` — czyli stracić
+        // własność „nie umie gadać przez sieć" w zamian za jeden typ.
+        .target(name: "LlamaScopeText"),
+
+        .target(name: "LlamaScopeCore", dependencies: ["LlamaScopeText"]),
         // Sonda wiersza poleceń. Nazywa się inaczej niż aplikacja, bo
         // aplikacja jest celem projektu Xcode i to ona ma być „LlamaScope".
         .executableTarget(name: "LlamaScopeProbe", dependencies: ["LlamaScopeCore"]),
@@ -43,7 +53,7 @@ let package = Package(
         // czytania promptów nie ma w tym binarium, jest sprawdzalna
         // z zewnątrz; obietnica oparta na tym, że go nie wywołujemy,
         // wymaga wiary w nasz kod.
-        .target(name: "LlamaScopeProxyCore"),
+        .target(name: "LlamaScopeProxyCore", dependencies: ["LlamaScopeText"]),
         // Strzałka do `LlamaScopeCore` idzie tylko w tę stronę — po rotujący
         // log z §10, żeby pośrednik nie miał drugiej implementacji tego
         // samego. Aplikacja nadal nie linkuje niczego stąd.
@@ -51,6 +61,7 @@ let package = Package(
             name: "LlamaScopeProxy", dependencies: ["LlamaScopeProxyCore", "LlamaScopeCore"]
         ),
 
+        .testTarget(name: "LlamaScopeTextTests", dependencies: ["LlamaScopeText"]),
         .testTarget(name: "LlamaScopeCoreTests", dependencies: ["LlamaScopeCore"]),
         .testTarget(name: "LlamaScopeProxyCoreTests", dependencies: ["LlamaScopeProxyCore"]),
 

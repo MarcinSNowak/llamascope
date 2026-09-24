@@ -29,6 +29,11 @@ targets:
     dependencies:
       - package: LlamaScopeCore
         product: LlamaScopeCore
+      # Wybór języka i odmiana liczb. Wymienione wprost, mimo że wchodzą
+      # i tak razem z rdzeniem — inaczej `import LlamaScopeText` w widoku
+      # zależałby od tego, czy Xcode akurat udostępni moduł przechodni.
+      - package: LlamaScopeCore
+        product: LlamaScopeText
       # `link: false` nie jest ostrożnością — jest treścią obietnicy z §9.
       # Pośrednik ma **jechać w pakiecie** jako osobny plik wykonywalny
       # i **nie wejść do binarki aplikacji**. Sprawdzalne z zewnątrz:

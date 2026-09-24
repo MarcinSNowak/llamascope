@@ -1,3 +1,4 @@
+import LlamaScopeText
 import XCTest
 @testable import LlamaScopeCore
 
@@ -159,10 +160,14 @@ final class AppStateTests: XCTestCase {
         guard case .working = state else {
             return XCTFail("spodziewana praca, dostaliśmy \(state)")
         }
-        XCTAssertFalse(StateText.sentence(state).contains("54"),
-                       "tempo poprzedniej odpowiedzi wróciło do zdania o pracy")
-        XCTAssertFalse(StateText.shortLabel(state).contains("tok/s"),
-                       "tempo poprzedniej odpowiedzi wróciło na etykietę w pasku")
+        // W obu językach: liczba wzięta z poprzedniej odpowiedzi,
+        // pokazana przy trwającej, opisuje co innego, niż się wydaje.
+        for language in Language.allCases {
+            XCTAssertFalse(StateText.sentence(state, in: language).contains("54"),
+                           "tempo poprzedniej odpowiedzi wróciło do zdania o pracy")
+            XCTAssertFalse(StateText.shortLabel(state, in: language).contains("tok/s"),
+                           "tempo poprzedniej odpowiedzi wróciło na etykietę w pasku")
+        }
     }
 
     func testFivePercentIsStillIdle() {

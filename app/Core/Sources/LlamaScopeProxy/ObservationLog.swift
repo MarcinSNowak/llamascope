@@ -1,6 +1,7 @@
 import Foundation
 import LlamaScopeCore
 import LlamaScopeProxyCore
+import LlamaScopeText
 
 /// Zapis obserwacji — jedna linia JSON na żądanie.
 ///
@@ -13,11 +14,13 @@ actor ObservationLog {
     private let file: URL?
     private let text: AppLog
     private let toTerminal: Bool
+    private let language: Language
 
-    init(file: URL?, text: AppLog, toTerminal: Bool) {
+    init(file: URL?, text: AppLog, toTerminal: Bool, language: Language) {
         self.file = file
         self.text = text
         self.toTerminal = toTerminal
+        self.language = language
     }
 
     /// Zdania dla człowieka — na ekran i do własnego logu pośrednika.
@@ -31,7 +34,7 @@ actor ObservationLog {
     }
 
     func record(_ report: RequestReport, modelMaximum: Int?) {
-        say(ProxyText.lines(for: report, modelMaximum: modelMaximum),
+        say(ProxyText.lines(for: report, modelMaximum: modelMaximum, in: language),
             alarming: report.isAlarming)
         guard let file else { return }
 
@@ -45,7 +48,7 @@ actor ObservationLog {
             "estimate_high": .number(Double(report.estimateHigh)),
             "reported_tokens": report.reportedTokens.map { .number(Double($0)) } ?? .null,
             "window": report.window.map { .number(Double($0.tokens)) } ?? .null,
-            "window_source": .string(report.window?.source.describedInPolish ?? "nieznane"),
+            "window_source": .string(report.window?.source.key ?? "unknown"),
             "calibration_samples": .number(Double(report.calibrationSamples)),
             "assessment": .string("\(report.assessment)"),
             "excess_tokens": report.excessTokens.map { .number(Double($0)) } ?? .null,

@@ -1,4 +1,5 @@
 import Foundation
+import LlamaScopeText
 
 /// Kawałek promptu w kolejności, w jakiej trafia do modelu.
 ///
@@ -25,13 +26,58 @@ public struct PromptPart: Sendable, Equatable {
 }
 
 public enum PromptBreakdown {
+    /// Etykiety kawałków. Osobno od rozkładania, bo to jedyne miejsce
+    /// w tym pliku, w którym cokolwiek zależy od języka — reszta liczy
+    /// znaki i nie ma o czym mówić.
+    enum Words {
+        static func tools(_ count: Int, in language: Language) -> String {
+            language == .polish ? "definicje narzędzi (\(count))" : "tool definitions (\(count))"
+        }
+
+        static func systemInstruction(in language: Language) -> String {
+            language == .polish ? "instrukcja systemowa" : "system instruction"
+        }
+
+        static func message(_ index: Int, role: String, in language: Language) -> String {
+            language == .polish ? "wiadomość \(index) (\(role))" : "message \(index) (\(role))"
+        }
+
+        static func prompt(in language: Language) -> String {
+            language == .polish ? "prompt" : "prompt"
+        }
+
+        static func whole(in language: Language) -> String {
+            language == .polish ? "cała" : "all of it"
+        }
+
+        static func beginning(_ percent: Int, in language: Language) -> String {
+            language == .polish
+                ? "początek, ok. \(percent)%"
+                : "the beginning, about \(percent)%"
+        }
+
+        static func latestDoesNotFit(in language: Language) -> String {
+            language == .polish
+                ? "najnowsza wiadomość sama nie mieści się w oknie "
+                    + "— ucinany jest jej początek, po tokenach"
+                : "the latest message alone does not fit the window "
+                    + "— its beginning is being cut, by tokens"
+        }
+
+        static func systemSurvives(in language: Language) -> String {
+            language == .polish
+                ? "(instrukcja systemowa przeżywa — Ollama ją zachowuje)"
+                : "(the system instruction survives — Ollama keeps it)"
+        }
+    }
+
     /// Rozkłada żądanie na kawałki. Kolejność odpowiada kolejności wysyłki.
-    public static func parts(of body: JSONValue) -> [PromptPart] {
+    public static func parts(of body: JSONValue, in language: Language) -> [PromptPart] {
         var parts: [PromptPart] = []
 
         if let tools = body["tools"]?.arrayValue, !tools.isEmpty {
             parts.append(PromptPart(
-                label: "definicje narzędzi (\(tools.count))",
+                label: Words.tools(tools.count, in: language),
                 characters: JSONValue.array(tools).characterCount,
                 kind: .tools
             ))
@@ -39,7 +85,8 @@ public enum PromptBreakdown {
 
         if let system = body["system"]?.stringValue, !system.isEmpty {
             parts.append(PromptPart(
-                label: "instrukcja systemowa", characters: system.count, kind: .system
+                label: Words.systemInstruction(in: language),
+                characters: system.count, kind: .system
             ))
         }
 
@@ -53,14 +100,18 @@ public enum PromptBreakdown {
             }
             let isSystem = role == "system"
             parts.append(PromptPart(
-                label: isSystem ? "instrukcja systemowa" : "wiadomość \(index + 1) (\(role))",
+                label: isSystem
+                    ? Words.systemInstruction(in: language)
+                    : Words.message(index + 1, role: role, in: language),
                 characters: characters,
                 kind: isSystem ? .system : .turn
             ))
         }
 
         if let prompt = body["prompt"], !prompt.text.isEmpty {
-            parts.append(PromptPart(label: "prompt", characters: prompt.text.count, kind: .prompt))
+            parts.append(PromptPart(
+                label: Words.prompt(in: language), characters: prompt.text.count, kind: .prompt
+            ))
         }
 
         return parts
@@ -68,19 +119,21 @@ public enum PromptBreakdown {
 
     /// Które kawałki wypadną, gdy ucinane są **tokeny** od początku
     /// (`/api/generate` i `/v1/completions`).
-    public static func victims(in parts: [PromptPart], charactersCut: Int) -> [String] {
+    public static func victims(
+        in parts: [PromptPart], charactersCut: Int, in language: Language
+    ) -> [String] {
         var lost: [String] = []
         var remaining = charactersCut
         for part in parts {
             guard remaining > 0 else { break }
             if part.characters <= remaining {
-                lost.append("\(part.label) — cała")
+                lost.append("\(part.label) — \(Words.whole(in: language))")
                 remaining -= part.characters
             } else {
                 let percent = part.characters > 0
                     ? Int((100.0 * Double(remaining) / Double(part.characters)).rounded())
                     : 0
-                lost.append("\(part.label) — początek, ok. \(percent)%")
+                lost.append("\(part.label) — \(Words.beginning(percent, in: language))")
                 remaining = 0
             }
         }
@@ -106,7 +159,7 @@ public enum PromptBreakdown {
     /// `lost.count` byłby liczbą o jeden za dużą — a §15 stawia hipotezę
     /// o płaskowyżu właśnie na tej liczbie i ma ją zmierzyć, nie oszacować.
     public static func conversationVictims(
-        in parts: [PromptPart], characterBudget: Int
+        in parts: [PromptPart], characterBudget: Int, in language: Language
     ) -> (lost: [String], overflowed: Bool, lostTurns: Int) {
         var budget = characterBudget
         for part in parts where part.kind == .system || part.kind == .tools {
@@ -126,14 +179,13 @@ public enum PromptBreakdown {
         let turns = parts.enumerated().filter { $0.element.kind == .turn }
         let overflowed = survivors.isEmpty && !turns.isEmpty
         if overflowed {
-            return (["najnowsza wiadomość sama nie mieści się w oknie "
-                     + "— ucinany jest jej początek, po tokenach"], true, turns.count)
+            return ([Words.latestDoesNotFit(in: language)], true, turns.count)
         }
 
         let casualties = turns.filter { !survivors.contains($0.offset) }
-        var lost = casualties.map { "\($0.element.label) — cała" }
+        var lost = casualties.map { "\($0.element.label) — \(Words.whole(in: language))" }
         if !lost.isEmpty, parts.contains(where: { $0.kind == .system }) {
-            lost.append("(instrukcja systemowa przeżywa — Ollama ją zachowuje)")
+            lost.append(Words.systemSurvives(in: language))
         }
         return (lost, false, casualties.count)
     }
