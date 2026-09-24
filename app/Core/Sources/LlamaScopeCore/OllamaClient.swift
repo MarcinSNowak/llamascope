@@ -18,9 +18,11 @@ public enum OllamaStatus: Sendable, Equatable {
 /// odpowiada" o serwerze działającym obok.
 public struct OllamaClient: Sendable {
     public typealias Fetch = @Sendable (URL) async throws -> Data
+    public typealias Post = @Sendable (URL, Data) async throws -> Data
 
     public let baseURL: URL
     private let fetch: Fetch
+    private let post: Post
 
     public static func hostFromEnvironment(
         _ environment: [String: String] = ProcessInfo.processInfo.environment
@@ -33,13 +35,28 @@ public struct OllamaClient: Sendable {
         return URL(string: withScheme) ?? URL(string: "http://127.0.0.1:11434")!
     }
 
-    public init(baseURL: URL? = nil, fetch: Fetch? = nil) {
+    public init(baseURL: URL? = nil, fetch: Fetch? = nil, post: Post? = nil) {
         self.baseURL = baseURL ?? Self.hostFromEnvironment()
         self.fetch = fetch ?? { url in
             var request = URLRequest(url: url)
             // Dwie sekundy jak w wersji pythonowej. Pasek menu odświeża się
             // co sekundę; czekanie dłużej zamraża odczyt na dobre.
             request.timeoutInterval = 2
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse, http.statusCode != 200 {
+                throw OllamaError.badStatus(http.statusCode)
+            }
+            return data
+        }
+        self.post = post ?? { url, body in
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.httpBody = body
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            // Dłużej niż przy odczycie i nie przez pomyłkę. Zwolnienie
+            // kilkunastu gigabajtów albo załadowanie modelu z dysku trwa
+            // sekundy; to jest akcja na kliknięcie, nie odczyt w pętli.
+            request.timeoutInterval = 30
             let (data, response) = try await URLSession.shared.data(for: request)
             if let http = response as? HTTPURLResponse, http.statusCode != 200 {
                 throw OllamaError.badStatus(http.statusCode)
@@ -68,6 +85,66 @@ public struct OllamaClient: Sendable {
             return .notResponding(reason: "odpowiedź w nieznanym kształcie: \(error)")
         } catch {
             return .notResponding(reason: (error as NSError).localizedDescription)
+        }
+    }
+
+    /// Jak poszła akcja pisząca. Nie `Bool` i nie milczenie: użytkownik
+    /// nacisnął przycisk i ma prawo wiedzieć, czy stało się to, o co prosił.
+    public enum ActionOutcome: Sendable, Equatable {
+        case done
+        case failed(reason: String)
+    }
+
+    /// „Zwolnij teraz" z §7 — jedyne miejsce, w którym ta aplikacja cokolwiek
+    /// zmienia. Odpowiednik `ollama stop`: `keep_alive: 0` każe wyrzucić
+    /// model z pamięci natychmiast po obsłużeniu żądania, a żądanie bez
+    /// promptu nie generuje niczego.
+    public func unload(model: String) async -> ActionOutcome {
+        await generate(body: ["model": .text(model), "keep_alive": .zero])
+    }
+
+    /// „Załaduj ponownie" — ten sam model z powrotem. §7 dopuszcza to
+    /// **wyłącznie** jako cofnięcie poprzedniego zwolnienia; lista modeli do
+    /// wyboru jest zakazana, bo w tej chwili przestalibyśmy być wskaźnikiem,
+    /// a zaczęli być menedżerem modeli.
+    public func load(model: String) async -> ActionOutcome {
+        await generate(body: ["model": .text(model)])
+    }
+
+    private func generate(body: [String: JSONValue]) async -> ActionOutcome {
+        var body = body
+        // Bez tego odpowiedź przychodzi strumieniem wierszy JSON. Tu nie ma
+        // czego strumieniować — interesuje nas tylko, czy serwer przyjął.
+        body["stream"] = .no
+        do {
+            let payload = try JSONEncoder().encode(body)
+            _ = try await post(baseURL.appendingPathComponent("api/generate"), payload)
+            return .done
+        } catch let error as OllamaError {
+            if case let .badStatus(code) = error {
+                return .failed(reason: "serwer odpowiedział kodem \(code)")
+            }
+            return .failed(reason: "\(error)")
+        } catch {
+            return .failed(reason: (error as NSError).localizedDescription)
+        }
+    }
+
+    /// Tyle JSON-a, ile potrzeba na ciało tych dwóch żądań. Słownik
+    /// `[String: Any]` nie jest `Sendable`, a `JSONSerialization` w zamian
+    /// za wygodę oddaje sprawdzanie typów przy kompilacji.
+    enum JSONValue: Encodable {
+        case text(String)
+        case zero
+        case no
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            switch self {
+            case let .text(value): try container.encode(value)
+            case .zero: try container.encode(0)
+            case .no: try container.encode(false)
+            }
         }
     }
 

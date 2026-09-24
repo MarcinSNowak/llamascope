@@ -123,3 +123,58 @@ final class OllamaClientTests: XCTestCase {
         }
     }
 }
+
+/// Akcja pisząca. Sprawdzamy, co naprawdę idzie na drut — `keep_alive: 0`
+/// to cała różnica między zwolnieniem pamięci a wygenerowaniem czegoś.
+final class OllamaClientActionTests: XCTestCase {
+    private let host = URL(string: "http://127.0.0.1:11434")!
+
+    private func client(
+        recording sent: Box<[(URL, Data)]>,
+        answer: @escaping @Sendable () throws -> Data = { Data("{}".utf8) }
+    ) -> OllamaClient {
+        OllamaClient(baseURL: host, fetch: { _ in Data(#"{"models":[]}"#.utf8) }, post: { url, body in
+            sent.value.append((url, body))
+            return try answer()
+        })
+    }
+
+    private func body(_ data: Data) -> [String: Any] {
+        (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] ?? [:]
+    }
+
+    func testUnloadAsksTheServerToDropTheModelNow() async {
+        let sent = Box<[(URL, Data)]>([])
+        let outcome = await client(recording: sent).unload(model: "qwen2.5-coder:14b")
+
+        XCTAssertEqual(outcome, .done)
+        XCTAssertEqual(sent.value.count, 1)
+        XCTAssertEqual(sent.value[0].0.path, "/api/generate")
+        let payload = body(sent.value[0].1)
+        XCTAssertEqual(payload["model"] as? String, "qwen2.5-coder:14b")
+        XCTAssertEqual(payload["keep_alive"] as? Int, 0, "bez keep_alive: 0 to nie jest zwolnienie")
+        XCTAssertEqual(payload["stream"] as? Bool, false)
+        // Żadnego promptu — nie prosimy o generowanie, tylko o wyrzucenie
+        // modelu z pamięci.
+        XCTAssertNil(payload["prompt"])
+    }
+
+    func testLoadAsksForTheSameModelWithoutDroppingIt() async {
+        let sent = Box<[(URL, Data)]>([])
+        let outcome = await client(recording: sent).load(model: "qwen2.5-coder:14b")
+
+        XCTAssertEqual(outcome, .done)
+        let payload = body(sent.value[0].1)
+        XCTAssertEqual(payload["model"] as? String, "qwen2.5-coder:14b")
+        XCTAssertNil(payload["keep_alive"], "ładowanie z keep_alive: 0 zwolniłoby model w tej samej chwili")
+    }
+
+    /// Nieudana akcja ma powiedzieć, czemu się nie udała. Milczenie po
+    /// kliknięciu przycisku jest gorsze niż komunikat o błędzie.
+    func testFailedActionCarriesTheReason() async {
+        let sent = Box<[(URL, Data)]>([])
+        let failing = client(recording: sent, answer: { throw OllamaClient.OllamaError.badStatus(500) })
+        let outcome = await failing.unload(model: "qwen2.5-coder:14b")
+        XCTAssertEqual(outcome, .failed(reason: "serwer odpowiedział kodem 500"))
+    }
+}

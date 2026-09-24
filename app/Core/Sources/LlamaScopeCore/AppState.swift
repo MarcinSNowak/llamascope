@@ -79,18 +79,26 @@ public struct StateInput: Sendable {
     public var swap: SwapAssessment
     public var log: OllamaLogState
 
+    /// Rozstrzygnięcie „liczy czy stoi", podjęte **poza** tą funkcją, bo
+    /// wymaga pamięci o poprzednich odczytach (`ActivityGate`). Domyślnie
+    /// bierzemy sam próg z §5 — to znaczy tyle, że jednorazowy odczyt bez
+    /// historii odpowiada tak jak przedtem.
+    public var working: Bool
+
     public init(
         now: Date = Date(),
         ollama: OllamaStatus,
         gpu: GPUReading,
         swap: SwapAssessment = .noBaseline,
-        log: OllamaLogState = OllamaLogState()
+        log: OllamaLogState = OllamaLogState(),
+        working: Bool? = nil
     ) {
         self.now = now
         self.ollama = ollama
         self.gpu = gpu
         self.swap = swap
         self.log = log
+        self.working = working ?? gpu.percent.map(ActivityGate.busyOnItsOwn) ?? false
     }
 
     /// Wygoda dla testów i dla miejsc, w których serwer na pewno odpowiada.
@@ -99,9 +107,13 @@ public struct StateInput: Sendable {
         models: [LoadedModel],
         gpu: GPUReading,
         swap: SwapAssessment = .noBaseline,
-        log: OllamaLogState = OllamaLogState()
+        log: OllamaLogState = OllamaLogState(),
+        working: Bool? = nil
     ) {
-        self.init(now: now, ollama: .running(models: models), gpu: gpu, swap: swap, log: log)
+        self.init(
+            now: now, ollama: .running(models: models), gpu: gpu,
+            swap: swap, log: log, working: working
+        )
     }
 
     var models: [LoadedModel] {
@@ -118,7 +130,8 @@ public enum StateRecognizer {
     public static let truncationIsCurrentFor: TimeInterval = 5 * 60
 
     /// Powyżej tej wartości uznajemy, że GPU liczy. 5% zgodnie z §5.
-    public static let workingAbovePercent = 5
+    /// Próg mieszka w `ActivityGate`, bo tam jest też reguła gaszenia.
+    public static let workingAbovePercent = ActivityGate.startsWorkingAbove
 
     public static func recognize(_ input: StateInput) -> AppState {
         // Przed wszystkim innym, bo gdy nie ma z kim rozmawiać, reszta
@@ -150,11 +163,11 @@ public enum StateRecognizer {
             return .asleep
         }
 
-        guard let percent = input.gpu.percent else {
+        guard input.gpu.percent != nil else {
             return .loadedActivityUnknown(model: model, reason: input.gpu)
         }
 
-        if percent > workingAbovePercent {
+        if input.working {
             return .working(model: model, generation: input.log.lastGeneration)
         }
 
