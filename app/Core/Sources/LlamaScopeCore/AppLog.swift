@@ -25,6 +25,10 @@ public final class AppLog: @unchecked Sendable {
     public static let defaultKeep = 5
 
     public let directory: URL
+    /// Nazwa pliku bez rozszerzenia. Pośrednik (§12) jest osobnym procesem
+    /// i pisze do osobnego pliku — dwa procesy dopisujące do jednego pliku
+    /// dałyby log, w którym nie da się dojść, kto co zrobił.
+    public let name: String
     private let maxBytes: Int
     private let keep: Int
     private let fileManager: FileManager
@@ -33,29 +37,35 @@ public final class AppLog: @unchecked Sendable {
 
     /// Kanał do `os_log`, czyli bieżąca diagnostyka w Console.app. Plik jest
     /// do eksportu, ten kanał do patrzenia na żywo (§10).
-    private let live = Logger(subsystem: "com.qshmobile.LlamaScope", category: "monitor")
+    private let live: Logger
 
     public static let shared = AppLog()
 
     public init(
         directory: URL = AppLog.defaultDirectory,
+        name: String = "llamascope",
         maxBytes: Int = AppLog.defaultMaxBytes,
         keep: Int = AppLog.defaultKeep,
         fileManager: FileManager = .default,
         clock: @escaping @Sendable () -> Date = { Date() }
     ) {
         self.directory = directory
+        self.name = name
+        self.live = Logger(
+            subsystem: "com.qshmobile.LlamaScope",
+            category: name == "llamascope" ? "monitor" : name
+        )
         self.maxBytes = maxBytes
         self.keep = keep
         self.fileManager = fileManager
         self.clock = clock
     }
 
-    public var currentFile: URL { directory.appendingPathComponent("llamascope.log") }
+    public var currentFile: URL { directory.appendingPathComponent("\(name).log") }
 
     /// Plik numer `index` po rotacji. Zero to plik bieżący.
     public func file(_ index: Int) -> URL {
-        index == 0 ? currentFile : directory.appendingPathComponent("llamascope.\(index).log")
+        index == 0 ? currentFile : directory.appendingPathComponent("\(name).\(index).log")
     }
 
     public func write(_ message: String) {

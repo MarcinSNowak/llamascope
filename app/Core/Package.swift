@@ -20,12 +20,35 @@ let package = Package(
     products: [
         .library(name: "LlamaScopeCore", targets: ["LlamaScopeCore"]),
         .executable(name: "LlamaScopeProbe", targets: ["LlamaScopeProbe"]),
+        .executable(name: "LlamaScopeProxy", targets: ["LlamaScopeProxy"]),
     ],
     targets: [
         .target(name: "LlamaScopeCore"),
         // Sonda wiersza poleceń. Nazywa się inaczej niż aplikacja, bo
         // aplikacja jest celem projektu Xcode i to ona ma być „LlamaScope".
         .executableTarget(name: "LlamaScopeProbe", dependencies: ["LlamaScopeCore"]),
+
+        // Pośrednik z §12 — osobny proces, więc i osobne cele. Rozbity na
+        // dwa, bo to nie jest podział dla porządku:
+        //
+        // `LlamaScopeProxyCore` liczy i **nie umie gadać przez sieć**,
+        // `LlamaScopeProxy` gada przez sieć i sam nic nie rozstrzyga.
+        //
+        // Aplikacji w pasku menu nie wolno linkować żadnego z nich. §9
+        // obiecuje, że tryb domyślny nie ma technicznej możliwości
+        // zobaczenia treści promptu — obietnica oparta na tym, że kodu do
+        // czytania promptów nie ma w tym binarium, jest sprawdzalna
+        // z zewnątrz; obietnica oparta na tym, że go nie wywołujemy,
+        // wymaga wiary w nasz kod.
+        .target(name: "LlamaScopeProxyCore"),
+        // Strzałka do `LlamaScopeCore` idzie tylko w tę stronę — po rotujący
+        // log z §10, żeby pośrednik nie miał drugiej implementacji tego
+        // samego. Aplikacja nadal nie linkuje niczego stąd.
+        .executableTarget(
+            name: "LlamaScopeProxy", dependencies: ["LlamaScopeProxyCore", "LlamaScopeCore"]
+        ),
+
         .testTarget(name: "LlamaScopeCoreTests", dependencies: ["LlamaScopeCore"]),
+        .testTarget(name: "LlamaScopeProxyCoreTests", dependencies: ["LlamaScopeProxyCore"]),
     ]
 )
