@@ -5,10 +5,15 @@ import SwiftUI
 /// GPU z ostatnich dwóch minut, kilkanaście punktów w szesnastu pikselach.
 /// Przy stanach alarmowych sparkline ustępuje znakowi ostrzegawczemu.
 ///
-/// Znaczenie niesie **kształt, nie kolor**. Pasek menu bywa monochromatyczny,
-/// tryb ciemny i jasny zmieniają kontrast, a część ludzi nie odróżnia
-/// czerwieni od zieleni. Dlatego tu nie ma ani jednego `.foregroundColor`
-/// z konkretną barwą — wszystko rysuje się kolorem paska.
+/// Znaczenie niesie **kształt**, kolor jest drugim kanałem. Ta kolejność
+/// nie jest ozdobna: pasek menu bywa monochromatyczny, tryb ciemny i jasny
+/// zmieniają kontrast, a część ludzi nie odróżnia czerwieni od zieleni.
+/// Dlatego każdy stan ma osobny kształt **i** osobną barwę — kto widzi
+/// kolory, rozpozna stan szybciej; kto nie widzi, rozpozna go tak samo.
+///
+/// Którą barwę dostaje stan, nie rozstrzyga się tutaj, tylko w rdzeniu
+/// (`AppState.severity`) — bo reguła „niewiedza nie dostaje koloru spokoju"
+/// jest regułą, a nie kwestią gustu, i ma swój test.
 struct MenuBarIcon: View {
     let state: AppState
     let history: GPUHistory
@@ -18,6 +23,11 @@ struct MenuBarIcon: View {
     static let barCount = 16
 
     var body: some View {
+        shape.foregroundStyle(StateColor.of(state))
+    }
+
+    @ViewBuilder
+    private var shape: some View {
         switch state {
         case .promptTruncated, .modelOutsideGPU, .memoryRunningOut:
             // Trzy stany alarmowe — trójkąt, bo trójkąt znaczy „uwaga"
@@ -36,6 +46,27 @@ struct MenuBarIcon: View {
         case .working, .holdingMemoryIdle:
             Sparkline(samples: history.recent(Self.barCount))
                 .frame(width: 30, height: 14)
+        }
+    }
+}
+
+/// Barwa dla każdego szczebla powagi. Jedno miejsce, żeby ikona w pasku
+/// i nagłówek panelu nie mogły pokazać dwóch różnych kolorów tej samej
+/// chwili.
+///
+/// Kolory systemowe, nie własne — dostosowują się do trybu jasnego
+/// i ciemnego oraz do ustawień dostępności, czego własna paleta by nie
+/// robiła.
+enum StateColor {
+    static func of(_ state: AppState) -> Color {
+        switch state.severity {
+        case .alarm: return .red
+        case .unknown: return .orange
+        case .busy: return .green
+        // Spokój bez barwy: kolor paska menu. Zielony dla bezczynnego
+        // modelu znaczyłby „wszystko gra", a model trzymający kilkanaście
+        // gigabajtów bez powodu to nie jest powód do radości.
+        case .calm: return .primary
         }
     }
 }

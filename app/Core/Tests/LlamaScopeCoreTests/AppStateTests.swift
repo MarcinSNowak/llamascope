@@ -215,3 +215,37 @@ final class AppStateTests: XCTestCase {
         )
     }
 }
+
+/// Powaga stanu, czyli to, z czego bierze się kolor ikony.
+final class StateSeverityTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private func model() -> LoadedModel {
+        LoadedModel(name: "qwen2.5-coder:14b", sizeBytes: 9_000_000_000, sizeVRAMBytes: 9_000_000_000)
+    }
+
+    /// Najważniejszy test w tym pliku. Niewiedza nie może dostać koloru
+    /// spokoju — inaczej kolorem powiedzielibyśmy dokładnie to kłamstwo,
+    /// przed którym broni ósmy i siódmy stan.
+    func testNotKnowingIsNeverCalm() {
+        XCTAssertEqual(
+            AppState.loadedActivityUnknown(model: model(), reason: .classNotFound(searched: [])).severity,
+            .unknown
+        )
+        XCTAssertEqual(AppState.ollamaNotResponding(reason: "brak").severity, .unknown)
+        XCTAssertNotEqual(AppState.ollamaNotResponding(reason: "brak").severity, .calm)
+    }
+
+    func testTheThreeBadStatesAreAlarms() {
+        let truncation = InputTruncation(time: now, limitTokens: 258, promptTokens: 7260, keptTokens: 4, readTokens: 258)
+        XCTAssertEqual(AppState.promptTruncated(truncation).severity, .alarm)
+        XCTAssertEqual(AppState.modelOutsideGPU(model: model(), bytesOutside: 2_100_000_000).severity, .alarm)
+        XCTAssertEqual(AppState.memoryRunningOut(grownGB: 4.3).severity, .alarm)
+    }
+
+    func testCalmIsOnlyWhereNothingIsWrong() {
+        XCTAssertEqual(AppState.asleep.severity, .calm)
+        XCTAssertEqual(AppState.holdingMemoryIdle(model: model(), releasesIn: 180).severity, .calm)
+        XCTAssertEqual(AppState.working(model: model()).severity, .busy)
+    }
+}

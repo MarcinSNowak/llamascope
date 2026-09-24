@@ -55,6 +55,9 @@ struct StatusPanel: View {
             MenuBarIcon(state: monitor.state, history: monitor.history)
             Text(StateText.headline(monitor.state))
                 .font(.headline)
+                // Ten sam kolor co ikona. Nagłówek jest pierwszą rzeczą,
+                // na którą pada wzrok po otwarciu panelu.
+                .foregroundStyle(StateColor.of(monitor.state))
         }
     }
 

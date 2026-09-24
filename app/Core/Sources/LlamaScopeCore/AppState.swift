@@ -182,3 +182,37 @@ public enum StateRecognizer {
         return .holdingMemoryIdle(model: model, releasesIn: releasesIn.flatMap { $0 > 0 ? $0 : nil })
     }
 }
+
+/// Powaga stanu — cztery szczeble, z których bierze się kolor ikony.
+///
+/// Mieszka w rdzeniu, a nie przy rysowaniu, z dwóch powodów. Po pierwsze
+/// da się to sprawdzić testem: **żaden stan niepewności nie może wpaść do
+/// tego samego worka co spokój**, a to jest reguła, nie kwestia gustu.
+/// Po drugie sonda wiersza poleceń i pasek menu mają mieć to samo zdanie
+/// o tym, co jest alarmem.
+///
+/// Kolor jest **drugim** kanałem, nie pierwszym. §7 zostaje w mocy: znaczenie
+/// niesie kształt, bo pasek menu bywa monochromatyczny, tryb ciemny zmienia
+/// kontrast, a część ludzi nie odróżnia czerwieni od zieleni. Barwa tylko
+/// przyspiesza rozpoznanie temu, kto ją widzi.
+public enum StateSeverity: Sendable, Equatable {
+    /// Coś jest nie tak i wiemy co. Stany 1–3.
+    case alarm
+    /// Nie wiemy, co się dzieje. Dwa stany naszej niewiedzy.
+    case unknown
+    /// Model liczy.
+    case busy
+    /// Spokój: model czeka albo nic nie jest załadowane.
+    case calm
+}
+
+public extension AppState {
+    var severity: StateSeverity {
+        switch self {
+        case .promptTruncated, .modelOutsideGPU, .memoryRunningOut: return .alarm
+        case .loadedActivityUnknown, .ollamaNotResponding: return .unknown
+        case .working: return .busy
+        case .holdingMemoryIdle, .asleep: return .calm
+        }
+    }
+}
