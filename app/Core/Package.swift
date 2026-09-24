@@ -53,5 +53,14 @@ let package = Package(
 
         .testTarget(name: "LlamaScopeCoreTests", dependencies: ["LlamaScopeCore"]),
         .testTarget(name: "LlamaScopeProxyCoreTests", dependencies: ["LlamaScopeProxyCore"]),
+
+        // Osobny cel, bo to inny gatunek testu: te dwa nie sprawdzają
+        // naszego kodu, tylko dwa twierdzenia o **cudzym programie**, na
+        // których stoi §9 (log nie zawiera promptów) i §5 (przycięta
+        // rozmowa nie zostawia śladu). Czerwień znaczy tu „świat się
+        // zmienił, popraw dokumentację", a nie „zepsułeś kod" — wymieszane
+        // z testami jednostkowymi czytałoby się odwrotnie. Wymagają żywej
+        // Ollamy; bez niej **pomijają się**, a nie przechodzą.
+        .testTarget(name: "OllamaRealityTests", dependencies: ["LlamaScopeCore"]),
     ]
 )
