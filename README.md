@@ -151,6 +151,11 @@ gotowy program. Aplikacja natywna w pasku menu — z sześcioma stanami,
 przyciskiem „Zwolnij pamięć", podpisem i notaryzacją — jest w planach
 i pojawi się tutaj w wydaniach. Uwagi i zgłoszenia: przez *Issues*.
 
+Kod aplikacji natywnej leży już w katalogu [`app/`](app/) i da się ją
+zbudować. Wersja 0.5 jest **niepodpisana**, więc macOS będzie przy niej
+ostrzegał — dlaczego i co z tym zrobić, opisuje
+[INSTALACJA.md](INSTALACJA.md). Podpis i notaryzacja dochodzą w 0.9.
+
 ## Skąd to się wzięło
 
 LlamaScope powstał jako materiał pomocniczy do serii **ABC AI** —
