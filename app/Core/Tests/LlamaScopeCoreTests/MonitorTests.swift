@@ -280,3 +280,127 @@ final class MonitorActionTests: XCTestCase {
         XCTAssertEqual(monitor.history.samples.count, 2)
     }
 }
+
+/// Co trafia do własnego logu (§10). Nie sam zapis — ten ma swoje testy
+/// w `AppLogTests` — tylko **wybór**: co jest warte zapisania i co nie ma
+/// prawa się w logu znaleźć.
+@MainActor
+final class MonitorLoggingTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private func model() -> LoadedModel {
+        LoadedModel(name: "qwen2.5-coder:14b", sizeBytes: 9_000_000_000, sizeVRAMBytes: 9_000_000_000)
+    }
+
+    private func monitor(
+        ollama: Box<OllamaStatus>,
+        gpu: Box<GPUReading> = Box(.reading(percent: 0, serviceClass: "AGXAccelerator", key: "Device Utilization %")),
+        log: Box<[LogEvent]> = Box([]),
+        unparsed: Box<[String]> = Box([]),
+        written: Box<[String]>
+    ) -> Monitor {
+        let sources = MonitorSources(
+            ollama: { ollama.value },
+            gpu: { gpu.value },
+            swap: { SwapUsage(usedGB: 10, freeGB: 1.4) },
+            log: { defer { log.value = [] }; return log.value },
+            unparsedLog: { defer { unparsed.value = [] }; return unparsed.value },
+            record: { written.value.append($0) },
+            now: { self.now }
+        )
+        return Monitor(sources: sources, swapWatcher: SwapWatcher(store: InMemorySwapBaselineStore()))
+    }
+
+    /// Stan zmienia się kilkanaście razy dziennie, odczyt zdarza się 86 400
+    /// razy. Zapisywanie każdego odczytu zamieniłoby log w wykres, po którym
+    /// nie da się niczego znaleźć — i wypchnęłoby z niego rotacją wszystko,
+    /// co było warte zapisania.
+    func testOnlyChangesAreWrittenNotEveryReading() async {
+        let written = Box<[String]>([])
+        let monitor = monitor(ollama: Box(.running(models: [model()])), written: written)
+
+        await monitor.refresh()
+        await monitor.refresh()
+        await monitor.refresh()
+
+        XCTAssertEqual(written.value.count, 1, "trzy takie same odczyty to jeden wpis")
+        XCTAssertTrue(written.value[0].hasPrefix("stan: "))
+    }
+
+    func testEachRealChangeIsWritten() async {
+        let written = Box<[String]>([])
+        let ollama = Box<OllamaStatus>(.running(models: [model()]))
+        let gpu = Box<GPUReading>(.reading(percent: 0, serviceClass: "AGXAccelerator", key: "Device Utilization %"))
+        let monitor = monitor(ollama: ollama, gpu: gpu, written: written)
+
+        await monitor.refresh()
+        gpu.value = .reading(percent: 92, serviceClass: "AGXAccelerator", key: "Device Utilization %")
+        await monitor.refresh()
+
+        XCTAssertEqual(written.value.count, 2)
+        XCTAssertTrue(written.value[1].contains("pracuje"))
+    }
+
+    /// Ucięcie zapisujemy z liczbami, bo to jedyne zdarzenie, dla którego
+    /// całe narzędzie powstało — a zgłoszenie bez liczb nic nie rozstrzyga.
+    func testTruncationIsWrittenWithItsNumbers() async {
+        let written = Box<[String]>([])
+        let log = Box<[LogEvent]>([.inputTruncated(InputTruncation(
+            time: now, limitTokens: 1026, promptTokens: 11907, keptTokens: 4, readTokens: 1026
+        ))])
+        let monitor = monitor(ollama: Box(.running(models: [model()])), log: log, written: written)
+
+        await monitor.refresh()
+
+        let entry = written.value.first { $0.contains("UCIĘCIE") }
+        XCTAssertNotNil(entry)
+        XCTAssertTrue(entry?.contains("11907") ?? false)
+        XCTAssertTrue(entry?.contains("10881") ?? false, "przepadła liczba tokenów ma stać w logu wprost")
+    }
+
+    func testUnparsedOllamaLinesGoStraightToOurLog() async {
+        let written = Box<[String]>([])
+        let unparsed = Box(["msg=\"truncating input prompt\" w nowym formacie"])
+        let monitor = monitor(ollama: Box(.running(models: [model()])), unparsed: unparsed, written: written)
+
+        await monitor.refresh()
+
+        XCTAssertTrue(written.value.contains { $0.contains("NIEROZPOZNANA LINIA") && $0.contains("nowym formacie") })
+    }
+
+    /// Przy wyłączonej Ollamie zapisywanie awarii co sekundę wypełniłoby
+    /// megabajt w kwadrans. Pierwsza z serii wystarczy; powrót też jest
+    /// wpisem, bo z niego widać, jak długo trwała przerwa.
+    func testARunOfFailuresIsWrittenOnceAndSoIsTheRecovery() async {
+        let written = Box<[String]>([])
+        let ollama = Box<OllamaStatus>(.notResponding(reason: "połączenie odrzucone"))
+        let monitor = monitor(ollama: ollama, written: written)
+
+        await monitor.refresh()
+        await monitor.refresh()
+        await monitor.refresh()
+        XCTAssertEqual(written.value.filter { $0.contains("nie odpowiada:") }.count, 1)
+
+        ollama.value = .running(models: [model()])
+        await monitor.refresh()
+        XCTAssertTrue(written.value.contains { $0.contains("znowu odpowiada po 3") })
+    }
+
+    /// §9 i §10 razem: w logu nie ma prawa być treści promptu. Zapisujemy
+    /// liczby i nazwy modeli, nigdy to, o co ktoś zapytał.
+    func testNothingWeWriteCarriesPromptContents() async {
+        let written = Box<[String]>([])
+        let log = Box<[LogEvent]>([
+            .promptAccepted(PromptAccepted(task: 164, windowTokens: 2048, keepTokens: 4, promptTokens: 1978)),
+            .generationEval(EvalSpeed(tokens: 13, tokensPerSecond: 54.31)),
+        ])
+        let monitor = monitor(ollama: Box(.running(models: [model()])), log: log, written: written)
+
+        await monitor.refresh()
+
+        // Zdarzenia z treścią żądania nie generują wpisów same z siebie —
+        // do logu idzie stan, a stan jest zdaniem o modelu, nie o pytaniu.
+        XCTAssertEqual(written.value.count, 1)
+        XCTAssertTrue(written.value[0].hasPrefix("stan: "))
+    }
+}

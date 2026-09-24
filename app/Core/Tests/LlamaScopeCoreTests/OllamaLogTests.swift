@@ -20,6 +20,12 @@ enum LogSamples {
     static let generationEval =
         "slot print_timing: id  0 | task 150 |        eval time =     220.97 ms /    13 tokens (   18.41 ms per token,    54.31 tokens per second)"
 
+    /// Linia z załadowania modelu. Ma w sobie `n_ctx_slot`, a mimo to nie
+    /// jest nasza — trafiła tu z żywego logu 2026-09-24, bo pierwsza wersja
+    /// detektora zgłaszała ją jako nierozpoznaną przy każdym starcie modelu.
+    static let loadModel =
+        "srv    load_model: initializing, n_slots = 1, n_ctx_slot = 512, kv_unified = 'false'"
+
     /// Linia, której NIE wolno czytać jako ucięcia.
     static let slotRelease =
         "slot      release: id  0 | task 164 | stop processing: n_tokens = 1990, truncated = 0"
@@ -200,5 +206,71 @@ final class OllamaLogStateTests: XCTestCase {
         state.apply([OllamaLogParser.parse(line: LogSamples.truncation)!])
         state.apply([OllamaLogParser.parse(line: LogSamples.newPrompt)!])
         XCTAssertNotNil(state.lastTruncation)
+    }
+}
+
+/// Rozróżnienie z §10: linia nie nasza kontra linia nasza, której nie
+/// zrozumieliśmy. Bez tego rozróżnienia własny log albo milczy o zmianie
+/// formatu w Ollamie, albo jest kopią cudzego logu — i jedno, i drugie
+/// czyni go bezużytecznym przy zgłoszeniu.
+final class UnrecognizedLineTests: XCTestCase {
+    func testALineWeParsedIsNotReportedAsUnrecognized() {
+        XCTAssertEqual(
+            OllamaLogParser.read(line: LogSamples.newPrompt),
+            .understood(OllamaLogParser.parse(line: LogSamples.newPrompt)!)
+        )
+    }
+
+    /// Najważniejszy test w tej klasie. Gdy Ollama zmieni format linii
+    /// o ucięciu, wzorzec przestanie pasować — i to jest dokładnie ta chwila,
+    /// w której musimy się dowiedzieć, zamiast pokazywać spokój.
+    func testAChangedTruncationLineIsKeptForTheReport() {
+        let changed = #"time=2027-01-01T10:20:37Z level=WARN msg="truncating input prompt" ctx_limit=1026 tokens=11907"#
+        guard case let .unrecognized(line) = OllamaLogParser.read(line: changed) else {
+            return XCTFail("zmieniona linia o ucięciu musi trafić do zgłoszenia")
+        }
+        XCTAssertTrue(line.contains("truncating input prompt"))
+    }
+
+    /// A linia, o której z góry wiemy, że nas nie dotyczy, nie ma prawa
+    /// trafić do naszego logu — łącznie z `truncated = 0`, którego świadomie
+    /// nie czytamy. W żywym logu stoi ona przy 752 żądaniach na 754.
+    func testLinesWeDeliberatelyIgnoreDoNotFloodOurLog() {
+        XCTAssertEqual(OllamaLogParser.read(line: LogSamples.slotRelease), .notOurs)
+        XCTAssertEqual(OllamaLogParser.read(line: LogSamples.loadModel), .notOurs,
+                       "sam `n_ctx_slot` bez promptu to nie jest nasza linia")
+        XCTAssertEqual(OllamaLogParser.read(line: "time=2026-09-06T10:20:37.163+02:00 level=INFO msg=\"nic ciekawego\""), .notOurs)
+        XCTAssertEqual(OllamaLogParser.read(line: ""), .notOurs)
+    }
+
+    func testTheReaderCollectsThemAndHandsThemOverOnce() throws {
+        let path = NSTemporaryDirectory() + "llamascope-unrecognized-\(UUID().uuidString).log"
+        FileManager.default.createFile(atPath: path, contents: Data())
+        defer { try? FileManager.default.removeItem(atPath: path) }
+
+        let reader = OllamaLogReader(path: path)
+        let broken = #"msg="truncating input prompt" w nowym formacie"#
+        try Data("\(LogSamples.slotRelease)\n\(broken)\n\(LogSamples.newPrompt)\n".utf8)
+            .write(to: URL(fileURLWithPath: path))
+
+        XCTAssertEqual(reader.readNew().count, 1, "rozumiane zdarzenia idą osobno")
+        XCTAssertEqual(reader.takeUnrecognized(), [broken])
+        XCTAssertEqual(reader.takeUnrecognized(), [], "drugie odebranie ma dać pustkę")
+    }
+
+    /// Zmiana formatu w Ollamie dotyczy **każdej** linii, więc bez limitu
+    /// nasz log stałby się kopią cudzego. Licznik biegnie dalej, bo
+    /// „10 linii i jeszcze cztery tysiące” to inna diagnoza niż „10 linii”.
+    func testOnlyTheFirstFewLinesAreKeptButAllAreCounted() throws {
+        let path = NSTemporaryDirectory() + "llamascope-flood-\(UUID().uuidString).log"
+        defer { try? FileManager.default.removeItem(atPath: path) }
+        let broken = #"msg="truncating input prompt" w nowym formacie"#
+        let flood = Array(repeating: broken, count: 50).joined(separator: "\n") + "\n"
+        try Data(flood.utf8).write(to: URL(fileURLWithPath: path))
+
+        let reader = OllamaLogReader(path: path, start: .beginning)
+        _ = reader.readNew()
+        XCTAssertEqual(reader.takeUnrecognized().count, OllamaLogReader.unrecognizedPerRead)
+        XCTAssertEqual(reader.unrecognizedCount, 50)
     }
 }

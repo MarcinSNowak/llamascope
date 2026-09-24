@@ -98,6 +98,44 @@ public enum OllamaLogParser {
         return formatter
     }()
 
+    /// Co zrobiliśmy z linią. Trzy wyniki, nie dwa — bo `nil` z `parse`
+    /// zlewa w jedno „to nie o nas" i „to o nas, ale tego nie rozumiem",
+    /// a §10 nazywa ten drugi przypadek najcenniejszą rzeczą w logu
+    /// aplikacji. Format logu Ollamy zmienia się między wydaniami i to
+    /// właśnie ta różnica ma nam o tym powiedzieć, zanim powie użytkownik
+    /// zdaniem „nic nie pokazuje".
+    public enum LineReading: Sendable, Equatable {
+        case understood(LogEvent)
+        case notOurs
+        case unrecognized(String)
+    }
+
+    /// Słowa, po których poznajemy, że linia dotyczy czegoś, co **umiemy**
+    /// czytać. Celowo krótkie fragmenty, bo pasować mają także po zmianie
+    /// reszty formatu — inaczej wzorzec i detektor psułyby się razem
+    /// i nie dowiedzielibyśmy się o niczym.
+    static let ourMarkers = [
+        "truncating input prompt",
+        "new prompt",
+        "tokens per second",
+    ]
+
+    public static func read(line: String) -> LineReading {
+        if let event = parse(line: line) { return .understood(event) }
+        let lowered = line.lowercased()
+        if ourMarkers.contains(where: lowered.contains) { return .unrecognized(line) }
+
+        // `n_ctx_slot` samo w sobie nie wystarcza i wiemy to z pomiaru:
+        // linia `srv load_model: initializing, n_slots = 1, n_ctx_slot = 512`
+        // trafiała przez nie do naszego logu przy każdym załadowaniu modelu,
+        // choć nigdy nie była do rozebrania. Fałszywe zgłoszenie „czegoś nie
+        // rozumiem" kosztuje dokładnie tyle, ile przeoczone prawdziwe.
+        if lowered.contains("n_ctx_slot"), lowered.contains("prompt") {
+            return .unrecognized(line)
+        }
+        return .notOurs
+    }
+
     public static func parse(line: String) -> LogEvent? {
         // Kolejność prób jest istotna tylko w jednym miejscu: wzorzec
         // generowania pasowałby też do linii promptu, gdyby nie wiodący „|”.
@@ -196,6 +234,20 @@ public final class OllamaLogReader {
         self.offset = start == .end ? size : 0
     }
 
+    /// Linie, które wyglądały na nasze, a nie dały się rozebrać — zebrane
+    /// od ostatniego `takeUnrecognized()`. Limit na odczyt jest po to, żeby
+    /// zmiana formatu w Ollamie nie zamieniła naszego logu w kopię cudzego.
+    public static let unrecognizedPerRead = 10
+    private var unrecognized: [String] = []
+    /// Licznik biegnie dalej także wtedy, gdy linii już nie zapisujemy —
+    /// „10 linii i jeszcze 4000" to zupełnie inna diagnoza niż „10 linii".
+    public private(set) var unrecognizedCount = 0
+
+    public func takeUnrecognized() -> [String] {
+        defer { unrecognized = [] }
+        return unrecognized
+    }
+
     public func readNew() -> [LogEvent] {
         guard let handle = FileHandle(forReadingAtPath: path) else { return [] }
         defer { try? handle.close() }
@@ -217,8 +269,21 @@ public final class OllamaLogReader {
             offset += UInt64(complete.count)
 
             let text = String(decoding: complete, as: UTF8.self)
-            return text.split(separator: "\n", omittingEmptySubsequences: true)
-                .compactMap { OllamaLogParser.parse(line: String($0)) }
+            var events: [LogEvent] = []
+            for line in text.split(separator: "\n", omittingEmptySubsequences: true) {
+                switch OllamaLogParser.read(line: String(line)) {
+                case let .understood(event):
+                    events.append(event)
+                case .notOurs:
+                    continue
+                case let .unrecognized(line):
+                    unrecognizedCount += 1
+                    if unrecognized.count < Self.unrecognizedPerRead {
+                        unrecognized.append(DiagnosticsText.shortened(line))
+                    }
+                }
+            }
+            return events
         } catch {
             return []
         }

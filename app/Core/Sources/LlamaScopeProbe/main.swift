@@ -31,17 +31,27 @@ guard case .apple = profile.family else {
     exit(1)
 }
 
-print(profile.logLine)
-print(GPUReader.utilization().logLine)
-
-switch OllamaLogLocation.find() {
-case let .some(path): print("log Ollamy: \(path)")
-case .none:
-    // Nie to samo co „nie widzę ucięć" i musi się różnić w zgłoszeniu (§10).
-    print("log Ollamy: NIE ZNALEZIONY — szukano w \(OllamaLogLocation.knownPaths.joined(separator: ", "))")
+// Dokładnie te same wiersze, od których zaczyna się własny log aplikacji
+// (§10) — jedno źródło, żeby zgłoszenie z sondy i zgłoszenie z aplikacji
+// dawały się porównać bez tłumaczenia jednego na drugie.
+let logPath = OllamaLogLocation.find()
+for line in StartupReport.lines(
+    profile: profile,
+    gpu: GPUReader.utilization(),
+    logPath: logPath,
+    ollamaHost: OllamaClient.hostFromEnvironment()
+) {
+    print(line)
 }
 
-let monitor = Monitor()
+// Sonda **nie pisze** do pliku logu aplikacji. Narzędzie uruchamiane ręką
+// do obejrzenia stanu nie ma prawa po cichu dopisywać się do materiału
+// dowodowego zbieranego przez aplikację. To, co aplikacja by zapisała,
+// sonda pokazuje na wyjściu błędów — osobnym strumieniem, żeby przekierowanie
+// zwykłego wyjścia do pliku niczego nie zlepiło.
+let monitor = Monitor(sources: .live(logPath: logPath, record: { line in
+    FileHandle.standardError.write(Data("log: \(line)\n".utf8))
+}))
 let follow = CommandLine.arguments.contains("--sledz")
 
 print("")

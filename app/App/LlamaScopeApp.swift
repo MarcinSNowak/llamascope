@@ -13,9 +13,32 @@ struct LlamaScopeApp: App {
     @StateObject private var monitor: Monitor
 
     init() {
-        let monitor = Monitor()
+        // Profil maszyny idzie do logu **przed** pierwszym odczytem. Mamy
+        // jedną maszynę, a pytania z §15 o M1, M3, M4 i warianty Pro/Max
+        // zamkną wyłącznie zgłoszenia — a zgłoszenie bez tej linii kosztuje
+        // dwie tury korespondencji, z których druga zwykle nie nadchodzi.
+        let logPath = OllamaLogLocation.find()
+        for line in StartupReport.lines(
+            profile: HardwareProfileReader.read(appVersion: Self.version),
+            gpu: GPUReader.utilization(),
+            logPath: logPath,
+            ollamaHost: OllamaClient.hostFromEnvironment()
+        ) {
+            AppLog.shared.write(line)
+        }
+
+        let monitor = Monitor(sources: .live(logPath: logPath))
         monitor.start()
         _monitor = StateObject(wrappedValue: monitor)
+    }
+
+    /// Znak zapytania zamiast pustego miejsca: wersja, której nie umiemy
+    /// odczytać, ma być widoczna w zgłoszeniu jako brak, a nie jako nic.
+    static var version: String {
+        let bundle = Bundle.main
+        let short = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
+        let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "?"
+        return "\(short) (\(build))"
     }
 
     var body: some Scene {

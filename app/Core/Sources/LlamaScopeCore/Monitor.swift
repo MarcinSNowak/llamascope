@@ -9,6 +9,12 @@ public struct MonitorSources: Sendable {
     public var gpu: @Sendable () -> GPUReading
     public var swap: @Sendable () -> SwapUsage?
     public var log: @Sendable () -> [LogEvent]
+    /// Linie logu Ollamy, które wyglądały na nasze, a nie dały się rozebrać.
+    /// Osobne źródło, bo to nie jest stan — to materiał do zgłoszenia (§10).
+    public var unparsedLog: @Sendable () -> [String]
+    /// Dokąd trafia własny log aplikacji. Domyślnie donikąd, żeby testy
+    /// i sonda nie zapisywały niczego na dysk bez proszenia.
+    public var record: @Sendable (String) -> Void
     public var now: @Sendable () -> Date
     /// Jedyna akcja pisząca (§7). Osobno od odczytów, bo tylko ona zmienia
     /// cudzy stan — i żeby w teście dało się sprawdzić, że nie wywołujemy
@@ -21,6 +27,8 @@ public struct MonitorSources: Sendable {
         gpu: @escaping @Sendable () -> GPUReading,
         swap: @escaping @Sendable () -> SwapUsage?,
         log: @escaping @Sendable () -> [LogEvent],
+        unparsedLog: @escaping @Sendable () -> [String] = { [] },
+        record: @escaping @Sendable (String) -> Void = { _ in },
         now: @escaping @Sendable () -> Date = { Date() },
         unload: @escaping @Sendable (String) async -> OllamaClient.ActionOutcome = { _ in
             .failed(reason: "to źródło nie umie zwalniać modeli")
@@ -33,6 +41,8 @@ public struct MonitorSources: Sendable {
         self.gpu = gpu
         self.swap = swap
         self.log = log
+        self.unparsedLog = unparsedLog
+        self.record = record
         self.now = now
         self.unload = unload
         self.load = load
@@ -41,7 +51,10 @@ public struct MonitorSources: Sendable {
     /// Źródła prawdziwe: serwer pod `OLLAMA_HOST`, IOKit, `sysctl`, log Ollamy.
     /// Gdy logu nie ma, zwracamy pustkę zamiast udawać, że nic się nie dzieje
     /// — o tym, że go nie znaleziono, mówi `MonitorReport` (§10).
-    public static func live(logPath: String? = OllamaLogLocation.find()) -> MonitorSources {
+    public static func live(
+        logPath: String? = OllamaLogLocation.find(),
+        record: @escaping @Sendable (String) -> Void = { AppLog.shared.write($0) }
+    ) -> MonitorSources {
         let client = OllamaClient()
         let reader = logPath.map { OllamaLogReader(path: $0) }
         return MonitorSources(
@@ -49,6 +62,8 @@ public struct MonitorSources: Sendable {
             gpu: { GPUReader.utilization() },
             swap: { SwapReader.read() },
             log: { reader?.readNew() ?? [] },
+            unparsedLog: { reader?.takeUnrecognized() ?? [] },
+            record: record,
             unload: { await client.unload(model: $0) },
             load: { await client.load(model: $0) }
         )
@@ -103,6 +118,7 @@ public final class Monitor: ObservableObject {
     private var logState = OllamaLogState()
     private var ticker: Task<Void, Never>?
     private var gate = ActivityGate()
+    private var lastLoggedKind: String?
 
     public init(
         sources: MonitorSources = .live(),
@@ -123,19 +139,47 @@ public final class Monitor: ObservableObject {
 
         // Log czytamy zawsze, także przy martwym serwerze: ucięcie mogło
         // się zdarzyć chwilę przed tym, jak przestał odpowiadać.
-        logState.apply(sources.log())
+        let events = sources.log()
+        logState.apply(events)
+
+        for event in events {
+            // Ucięcie zapisujemy zawsze, także gdy stan się przez nie nie
+            // zmienił — to jedyne zdarzenie, dla którego całe narzędzie
+            // powstało, i w zgłoszeniu musi być z liczbami.
+            guard case let .inputTruncated(truncation) = event else { continue }
+            sources.record(
+                "UCIĘCIE: okno \(truncation.limitTokens), prompt \(truncation.promptTokens), "
+                + "przeczytane \(truncation.readTokens), przepadło \(truncation.lostTokens)"
+            )
+        }
+
+        for line in sources.unparsedLog() {
+            // Najcenniejsza rzecz w tym logu (§10): linia, która wygląda na
+            // naszą, a której nie rozumiemy. Po zmianie formatu w Ollamie to
+            // ona powie, co się stało — zanim ktoś zgłosi „nic nie pokazuje”.
+            sources.record("NIEROZPOZNANA LINIA LOGU OLLAMY: \(line)")
+        }
 
         let anythingLoaded: Bool
         switch ollama {
         case let .running(models):
             anythingLoaded = !models.isEmpty
+            if consecutiveFailures > 0 {
+                sources.record("serwer Ollamy znowu odpowiada po \(consecutiveFailures) nieudanych próbach")
+            }
             consecutiveFailures = 0
-        case .notResponding:
+        case let .notResponding(reason):
             // Martwy serwer to nie jest chwila spokoju — nie wolno z niej
             // brać punktu odniesienia dla swapu, bo Ollama mogła właśnie
             // paść z modelem w pamięci.
             anythingLoaded = true
             consecutiveFailures += 1
+            // Tylko pierwsza z serii. Przy wyłączonej Ollamie zapisywanie
+            // tego co sekundę wypełniłoby megabajt w kwadrans i wypchnęło
+            // z logu wszystko, co naprawdę było warte zapisania.
+            if consecutiveFailures == 1 {
+                sources.record("serwer Ollamy nie odpowiada: \(reason)")
+            }
         }
 
         let swap = swapWatcher.assess(
@@ -161,9 +205,24 @@ public final class Monitor: ObservableObject {
 
         let working = gate.update(percent: gpu.percent, now: now)
 
-        state = StateRecognizer.recognize(StateInput(
+        let fresh = StateRecognizer.recognize(StateInput(
             now: now, ollama: ollama, gpu: gpu, swap: swap, log: logState, working: working
         ))
+
+        // Zmiany, nie odczyty. Stan zmienia się kilkanaście razy dziennie,
+        // odczyt zdarza się 86 400 razy — zapisywanie każdego zamieniłoby
+        // log w wykres, po którym nie da się niczego znaleźć.
+        let kind = StateText.shortLabel(fresh)
+        if kind != lastLoggedKind {
+            sources.record("stan: \(StateText.sentence(fresh))")
+            // Przy każdym przejściu do niewiedzy zapisujemy, na czym
+            // dokładnie stanął odczyt GPU — bez tego zgłoszenie „pokazuje
+            // znak zapytania” jest nie do odróżnienia od żadnego innego.
+            if case .loadedActivityUnknown = fresh { sources.record(gpu.logLine) }
+            lastLoggedKind = kind
+        }
+
+        state = fresh
         lastRefresh = now
         return state
     }
@@ -182,8 +241,13 @@ public final class Monitor: ObservableObject {
         case .done:
             lastUnloaded = name
             lastActionProblem = nil
+            // Jedyna akcja, po której maszyna wygląda inaczej — więc jedyna,
+            // którą trzeba umieć odtworzyć, gdy ktoś zapyta, czemu jego model
+            // zniknął z pamięci.
+            sources.record("zwolniono model \(name) na żądanie")
         case let .failed(reason):
             lastActionProblem = reason
+            sources.record("nie udało się zwolnić \(name): \(reason)")
         }
         await refresh()
         return outcome
@@ -200,8 +264,10 @@ public final class Monitor: ObservableObject {
         case .done:
             lastUnloaded = nil
             lastActionProblem = nil
+            sources.record("załadowano ponownie \(name)")
         case let .failed(reason):
             lastActionProblem = reason
+            sources.record("nie udało się załadować \(name): \(reason)")
         }
         await refresh()
         return outcome
