@@ -14,6 +14,7 @@ import SwiftUI
 /// chwili.
 struct StatusPanel: View {
     @ObservedObject var monitor: Monitor
+    @ObservedObject var proxy: ProxyControl
 
     /// Potwierdzenie zwolnienia pamięci. §7: pytamy tylko wtedy, gdy GPU nie
     /// jest przy zerze, czyli gdy grozi przerwanie komuś generowania.
@@ -44,6 +45,8 @@ struct StatusPanel: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            Divider()
+            proxySection
             bottomRow
         }
         .padding(14)
@@ -133,6 +136,51 @@ struct StatusPanel: View {
                 Task { await monitor.loadAgain() }
             }
         }
+    }
+
+    /// Pośrednik (§12). Domyślnie wyłączony i tak ma zostać — to jest
+    /// dodatek dla kogoś, kto ma konkretne podejrzenie, a nie druga połowa
+    /// narzędzia. Dlatego siedzi na dole panelu, jednym wierszem.
+    @ViewBuilder
+    private var proxySection: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(ProxyPresenceText.headline(proxy.presence))
+                    .font(.callout)
+                Spacer(minLength: 12)
+                Button(proxy.presence.isRunning ? "Wyłącz" : "Włącz") {
+                    proxy.toggle()
+                }
+                .disabled(isProxyStarting)
+            }
+
+            Text(ProxyPresenceText.sentence(proxy.presence))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            // Zdanie o tym, co pośrednik widzi, pokazuje się wtedy, kiedy
+            // ma znaczenie: gdy proces działa. Włączenie go zmienia to, co
+            // §9 obiecuje o całym narzędziu, i człowiek ma o tym przeczytać
+            // w chwili, w której to się dzieje — nie w dokumentacji.
+            if proxy.presence.isRunning {
+                Text(ProxyPresenceText.seesPrompts)
+                    .font(.caption)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let advice = ProxyPresenceText.howToFix(proxy.presence) {
+                Text(advice)
+                    .font(.caption)
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private var isProxyStarting: Bool {
+        if case .starting = proxy.presence { return true }
+        return false
     }
 
     private var bottomRow: some View {

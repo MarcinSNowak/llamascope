@@ -29,6 +29,16 @@ targets:
     dependencies:
       - package: LlamaScopeCore
         product: LlamaScopeCore
+      # `link: false` nie jest ostrożnością — jest treścią obietnicy z §9.
+      # Pośrednik ma **jechać w pakiecie** jako osobny plik wykonywalny
+      # i **nie wejść do binarki aplikacji**. Sprawdzalne z zewnątrz:
+      #   nm LlamaScope.app/Contents/MacOS/LlamaScope | grep ProxyCore
+      # ma nie zwrócić nic.
+      - target: LlamaScopeProxy
+        link: false
+        embed: true
+        copy:
+          destination: executables
     info:
       path: App/Info.plist
       properties:
@@ -49,6 +59,26 @@ targets:
         CODE_SIGN_IDENTITY: "-"
         CODE_SIGNING_REQUIRED: "NO"
         ENABLE_HARDENED_RUNTIME: "NO"
+
+  # Pośrednik z §12 jako osobny program w pakiecie. Źródła te same, co
+  # bierze SwiftPM — jeden kod, dwa sposoby zbudowania: `swift run` dla
+  # sprawdzania i pakiet .app dla wydania.
+  LlamaScopeProxy:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Core/Sources/LlamaScopeProxy
+    dependencies:
+      - package: LlamaScopeCore
+        product: LlamaScopeProxyCore
+      - package: LlamaScopeCore
+        product: LlamaScopeCore
+    settings:
+      base:
+        PRODUCT_NAME: LlamaScopeProxy
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_IDENTITY: "-"
+        CODE_SIGNING_REQUIRED: "NO"
 
 # Schemat wpisany wprost, a nie zostawiony Xcode do dorobienia u siebie.
 # Bez tego `xcodebuild -scheme LlamaScope` działa na tej maszynie i nie

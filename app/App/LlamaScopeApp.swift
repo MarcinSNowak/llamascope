@@ -11,6 +11,7 @@ import SwiftUI
 @main
 struct LlamaScopeApp: App {
     @StateObject private var monitor: Monitor
+    @StateObject private var proxy = ProxyControl()
 
     init() {
         // Profil maszyny idzie do logu **przed** pierwszym odczytem. Mamy
@@ -43,7 +44,7 @@ struct LlamaScopeApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            StatusPanel(monitor: monitor)
+            StatusPanel(monitor: monitor, proxy: proxy)
         } label: {
             MenuBarIcon(state: monitor.state, history: monitor.history)
         }

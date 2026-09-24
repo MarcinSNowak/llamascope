@@ -19,6 +19,9 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "LlamaScopeCore", targets: ["LlamaScopeCore"]),
+        // Osobny produkt, żeby cel pośrednika w projekcie Xcode miał się
+        // do czego podpiąć. Aplikacja go nie wymienia i wymieniać nie ma.
+        .library(name: "LlamaScopeProxyCore", targets: ["LlamaScopeProxyCore"]),
         .executable(name: "LlamaScopeProbe", targets: ["LlamaScopeProbe"]),
         .executable(name: "LlamaScopeProxy", targets: ["LlamaScopeProxy"]),
     ],

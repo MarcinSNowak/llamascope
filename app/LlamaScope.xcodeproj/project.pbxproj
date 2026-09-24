@@ -7,22 +7,71 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1121A50A38FB30439773FD6F /* Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B63CD36F957AD9CFDD98221 /* Connection.swift */; };
+		127BF52092B420E4ABFA0F75 /* Proxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4D66155C55A960492F1081C /* Proxy.swift */; };
 		1DC761E0172D07AA5A7786D4 /* LlamaScopeCore in Frameworks */ = {isa = PBXBuildFile; productRef = C7C6C267E490B5DB3CAC6FCA /* LlamaScopeCore */; };
+		2E024F7FE280E712EC180A59 /* ObservationLog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FD0D38CB7879BB3AB180C70 /* ObservationLog.swift */; };
+		3002176EFBDDDE1237D110D5 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8842C92D0964397D727C86BA /* main.swift */; };
+		435D9A12EF53A3543D78E3E6 /* Upstream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4879E9B9941E0E6CCC3CC24A /* Upstream.swift */; };
+		645482791464902F8CD670F0 /* ProxyControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A042CC402302EFB6AFBC1E4 /* ProxyControl.swift */; };
+		77DC1B89C507E87338404C5D /* LlamaScopeCore in Frameworks */ = {isa = PBXBuildFile; productRef = BC3258EF5F1FF3E8BD58C0E6 /* LlamaScopeCore */; };
 		95E8583740D85826C5B8DB74 /* StatusPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D10D17ED7EECEDDEFA7AD7 /* StatusPanel.swift */; };
+		99F9EBE42771D56080C8817D /* LlamaScopeProxyCore in Frameworks */ = {isa = PBXBuildFile; productRef = 0D80DC65E037BDCF1DAECCAD /* LlamaScopeProxyCore */; };
+		A5BE150435B6069482EFC4F9 /* LlamaScopeProxy in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = B29462BC76BB1A8198F84C65 /* LlamaScopeProxy */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		BBF8EE1050DAF15A9C0D996A /* LlamaScopeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C15C3800A5EAC01C36B0368E /* LlamaScopeApp.swift */; };
 		EF2237A84488B6BA29261D49 /* MenuBarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D9CB960957BBADF41F087F /* MenuBarIcon.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		3ED2D457BDF4B9C51728022C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 6EAD7F292FC5B6A7060E7D07 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7237F70F8D1D0D3AEF583E62;
+			remoteInfo = LlamaScopeProxy;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		978EB1163A0C2CFED37E8CE4 /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				A5BE150435B6069482EFC4F9 /* LlamaScopeProxy in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		3B9ED8BBA43F7BC199D0134F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		4879E9B9941E0E6CCC3CC24A /* Upstream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Upstream.swift; sourceTree = "<group>"; };
+		4FD0D38CB7879BB3AB180C70 /* ObservationLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationLog.swift; sourceTree = "<group>"; };
 		77D10D17ED7EECEDDEFA7AD7 /* StatusPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPanel.swift; sourceTree = "<group>"; };
+		8842C92D0964397D727C86BA /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		8A042CC402302EFB6AFBC1E4 /* ProxyControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyControl.swift; sourceTree = "<group>"; };
+		9B63CD36F957AD9CFDD98221 /* Connection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Connection.swift; sourceTree = "<group>"; };
 		9E3EB605A65B3C912DBEAA60 /* LlamaScope.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LlamaScope.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B29462BC76BB1A8198F84C65 /* LlamaScopeProxy */ = {isa = PBXFileReference; includeInIndex = 0; path = LlamaScopeProxy; sourceTree = BUILT_PRODUCTS_DIR; };
 		BF8EEAC002921CCD514FFC7C /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = Core; sourceTree = SOURCE_ROOT; };
 		C15C3800A5EAC01C36B0368E /* LlamaScopeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaScopeApp.swift; sourceTree = "<group>"; };
 		D7D9CB960957BBADF41F087F /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
+		F4D66155C55A960492F1081C /* Proxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Proxy.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		98FB644D736DDDDAAA93AF2D /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				99F9EBE42771D56080C8817D /* LlamaScopeProxyCore in Frameworks */,
+				77DC1B89C507E87338404C5D /* LlamaScopeCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A57AA9E788D61205A39CCB41 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -40,6 +89,7 @@
 				3B9ED8BBA43F7BC199D0134F /* Info.plist */,
 				C15C3800A5EAC01C36B0368E /* LlamaScopeApp.swift */,
 				D7D9CB960957BBADF41F087F /* MenuBarIcon.swift */,
+				8A042CC402302EFB6AFBC1E4 /* ProxyControl.swift */,
 				77D10D17ED7EECEDDEFA7AD7 /* StatusPanel.swift */,
 			);
 			path = App;
@@ -49,17 +99,47 @@
 			isa = PBXGroup;
 			children = (
 				9E3EB605A65B3C912DBEAA60 /* LlamaScope.app */,
+				B29462BC76BB1A8198F84C65 /* LlamaScopeProxy */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		524F8698DD4AEE8E3C67E690 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				64087EE4B164C541853BC9C0 /* LlamaScopeProxy */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		64087EE4B164C541853BC9C0 /* LlamaScopeProxy */ = {
+			isa = PBXGroup;
+			children = (
+				9B63CD36F957AD9CFDD98221 /* Connection.swift */,
+				8842C92D0964397D727C86BA /* main.swift */,
+				4FD0D38CB7879BB3AB180C70 /* ObservationLog.swift */,
+				F4D66155C55A960492F1081C /* Proxy.swift */,
+				4879E9B9941E0E6CCC3CC24A /* Upstream.swift */,
+			);
+			path = LlamaScopeProxy;
 			sourceTree = "<group>";
 		};
 		9434DCA294BF10D1A45E4BED = {
 			isa = PBXGroup;
 			children = (
 				0FB7CFB25F817081AECC2601 /* App */,
+				A0EF54492519B0DE8964F470 /* Core */,
 				AFA66CF8B981C4659A8918E4 /* Packages */,
 				1926AA328783CCC6ED16206C /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		A0EF54492519B0DE8964F470 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				524F8698DD4AEE8E3C67E690 /* Sources */,
+			);
+			path = Core;
 			sourceTree = "<group>";
 		};
 		AFA66CF8B981C4659A8918E4 /* Packages */ = {
@@ -73,16 +153,38 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		7237F70F8D1D0D3AEF583E62 /* LlamaScopeProxy */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 98CF3821D693BC8A02B22C58 /* Build configuration list for PBXNativeTarget "LlamaScopeProxy" */;
+			buildPhases = (
+				10D984AD9A95D6C735C3E44A /* Sources */,
+				98FB644D736DDDDAAA93AF2D /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LlamaScopeProxy;
+			packageProductDependencies = (
+				0D80DC65E037BDCF1DAECCAD /* LlamaScopeProxyCore */,
+				BC3258EF5F1FF3E8BD58C0E6 /* LlamaScopeCore */,
+			);
+			productName = LlamaScopeProxy;
+			productReference = B29462BC76BB1A8198F84C65 /* LlamaScopeProxy */;
+			productType = "com.apple.product-type.tool";
+		};
 		C57D639EF27ACB02AF17956B /* LlamaScope */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 34BBC5698441142D178388DC /* Build configuration list for PBXNativeTarget "LlamaScope" */;
 			buildPhases = (
 				7E776FB9AD209FB20A3ACB38 /* Sources */,
 				A57AA9E788D61205A39CCB41 /* Frameworks */,
+				978EB1163A0C2CFED37E8CE4 /* Embed Dependencies */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				445E470D15DE60F000500F7A /* PBXTargetDependency */,
 			);
 			name = LlamaScope;
 			packageProductDependencies = (
@@ -121,24 +223,63 @@
 			projectRoot = "";
 			targets = (
 				C57D639EF27ACB02AF17956B /* LlamaScope */,
+				7237F70F8D1D0D3AEF583E62 /* LlamaScopeProxy */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		10D984AD9A95D6C735C3E44A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1121A50A38FB30439773FD6F /* Connection.swift in Sources */,
+				2E024F7FE280E712EC180A59 /* ObservationLog.swift in Sources */,
+				127BF52092B420E4ABFA0F75 /* Proxy.swift in Sources */,
+				435D9A12EF53A3543D78E3E6 /* Upstream.swift in Sources */,
+				3002176EFBDDDE1237D110D5 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		7E776FB9AD209FB20A3ACB38 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				BBF8EE1050DAF15A9C0D996A /* LlamaScopeApp.swift in Sources */,
 				EF2237A84488B6BA29261D49 /* MenuBarIcon.swift in Sources */,
+				645482791464902F8CD670F0 /* ProxyControl.swift in Sources */,
 				95E8583740D85826C5B8DB74 /* StatusPanel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		445E470D15DE60F000500F7A /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7237F70F8D1D0D3AEF583E62 /* LlamaScopeProxy */;
+			targetProxy = 3ED2D457BDF4B9C51728022C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		4588EF9EA928A7BED261281B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.qshmobile.LlamaScopeProxy;
+				PRODUCT_NAME = LlamaScopeProxy;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 		6E1BFBA7458C99E1DB11B552 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -174,6 +315,23 @@
 				);
 				MARKETING_VERSION = 0.5;
 				PRODUCT_BUNDLE_IDENTIFIER = com.qshmobile.LlamaScope;
+				SDKROOT = macosx;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		921469D8E4906637A4792BFA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_REQUIRED = NO;
+				CODE_SIGN_IDENTITY = "-";
+				COMBINE_HIDPI_IMAGES = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.qshmobile.LlamaScopeProxy;
+				PRODUCT_NAME = LlamaScopeProxy;
 				SDKROOT = macosx;
 				SWIFT_VERSION = 5.0;
 			};
@@ -319,6 +477,15 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		98CF3821D693BC8A02B22C58 /* Build configuration list for PBXNativeTarget "LlamaScopeProxy" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				921469D8E4906637A4792BFA /* Debug */,
+				4588EF9EA928A7BED261281B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
@@ -329,6 +496,14 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		0D80DC65E037BDCF1DAECCAD /* LlamaScopeProxyCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LlamaScopeProxyCore;
+		};
+		BC3258EF5F1FF3E8BD58C0E6 /* LlamaScopeCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = LlamaScopeCore;
+		};
 		C7C6C267E490B5DB3CAC6FCA /* LlamaScopeCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = LlamaScopeCore;
