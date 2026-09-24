@@ -34,7 +34,22 @@ limit=258 prompt=7260 keep=4 new=258
 
 LlamaScope czyta tę linię i pokazuje ją po ludzku.
 
-## Czego LlamaScope nie zobaczy
+## Dwie postacie
+
+W tym repozytorium są **dwa programy**, robiące to samo na dwa sposoby:
+
+| | skrypt Pythona | aplikacja macOS |
+|---|---|---|
+| plik | `llamascope.py` | katalog [`app/`](app/) |
+| gdzie mieszka | terminal albo [SwiftBar](https://swiftbar.app) | własna ikona w pasku menu |
+| stan | używany codziennie od 2026-09-06 | **0.5, niepodpisana** — [INSTALACJA.md](INSTALACJA.md) |
+| pośrednik (niżej) | nie ma | jest, domyślnie wyłączony |
+
+Skrypt nie jest etapem przejściowym do skasowania — jest wersją bez
+instalacji, która działa wszędzie tam, gdzie jest Python. Aplikacja
+dokłada sześć stanów, przycisk „Zwolnij teraz" i pośrednika.
+
+## Czego LlamaScope nie zobaczy z samego logu
 
 Uczciwa granica, zmierzona 2026-09-06 na Ollamie 0.32.14. Serwer radzi
 sobie ze zbyt długim wejściem na **dwa różne sposoby**:
@@ -44,29 +59,76 @@ sobie ze zbyt długim wejściem na **dwa różne sposoby**:
 | co robi serwer | ucina tokeny od początku | wyrzuca całe najstarsze wiadomości |
 | co przeżywa | koniec wiadomości | instrukcja systemowa i najnowsze tury |
 | linia `WARN` w logu | **jest** | **nie ma** |
-| LlamaScope ostrzeże | **tak** | **nie** |
+| widać z samego logu | **tak** | **nie** |
 
-Innymi słowy: **LlamaScope widzi ucięcie tylko wtedy, gdy sama najnowsza
-wiadomość nie mieści się w oknie.** Jeśli rozmowa w kliencie czatu rośnie
-i serwer po cichu wyrzuca stare tury, w logu nie ma o tym ani słowa —
-żadne narzędzie czytające log tego nie wykryje, łącznie z tym.
+Innymi słowy: **z loga widać ucięcie tylko wtedy, gdy sama najnowsza
+wiadomość nie mieści się w oknie.** Jeśli rozmowa w kliencie czatu
+rośnie i serwer po cichu wyrzuca stare tury, w logu nie ma o tym ani
+słowa.
 
-Wykrycie tego drugiego przypadku wymaga stanięcia między klientem
-a Ollamą i czytania treści żądań. To osobne narzędzie i osobna decyzja
-o prywatności — świadomie nie ma go tutaj.
+Gorzej: log temu **zaprzecza**. Przy żądaniu, z którego Ollama wycięła
+83% rozmowy, `llama-server` melduje w tej samej linii `truncated = 0`.
+Spokojne zero, które wygląda jak dobra wiadomość.
+
+Sprawdzaliśmy, czy da się to obejść sprytem — czy rosnąca rozmowa,
+której licznik tokenów przestaje rosnąć tuż pod sufitem okna, nie jest
+przypadkiem wykrywalnym śladem. **Zmierzone 2026-09-24 na trzech
+przebiegach: nie jest.** Taki płaskowyż pojawia się też wtedy, gdy nie
+ginie nic, a przy nierównych turach nie pojawia się mimo strat. Co
+gorsza, po rozpoczęciu przycinania Ollama raportuje prompt **już
+przycięty**, więc liczba ucieka od sufitu dokładnie wtedy, gdy zaczyna
+się strata. Log po przycięciu opisuje inną rozmowę niż ta, którą wysłał
+klient, i robi to bez żadnego znacznika.
+
+Dlatego ten przypadek ma osobne narzędzie.
+
+## Pośrednik
+
+Wykrycie znikających tur wymaga stanięcia **między klientem a Ollamą** —
+bo tylko tam widać żądanie, zanim serwer je przytnie. Aplikacja ma to od
+wersji 0.5 i jest to **świadoma zamiana jednej rzeczy na drugą**:
+dostajesz liczbę, której nie da się odczytać z logu, a oddajesz to, że
+program przestaje być ślepy na treść.
+
+Dlatego pośrednik jest zbudowany tak, żeby dało się to sprawdzić, a nie
+tylko nam uwierzyć:
+
+- **Jest osobnym procesem, nie funkcją w aplikacji.** „Wyłączony" znaczy,
+  że tego procesu nie ma — widać to w Monitorze aktywności i w `lsof`.
+- **Aplikacja nie zawiera ani grama jego kodu.** Sprawdzalne z zewnątrz,
+  bez czytania źródeł: `nm LlamaScope.app/Contents/MacOS/LlamaScope | grep -c ProxyCore`
+  daje `0`.
+- **Domyślnie jest wyłączony.** Włącza się przyciskiem, a panel mówi
+  wtedy wprost, że widzi treści promptów.
+- **Z promptów zapisuje wyłącznie liczby i etykiety, nigdy treść** —
+  do pliku `obserwacje.jsonl` na tym samym dysku.
+- Dokłada do żądania dokładnie jedną rzecz: `stream_options.include_usage`
+  dla strumieniowych żądań `/v1/`, żeby dostać prawdziwą liczbę tokenów
+  do kalibracji. Klienta, który już o to poprosił, zostawia w spokoju.
+
+Uruchamia się go z panelu albo osobno z wiersza poleceń:
+
+```sh
+LLAMASCOPE_PORT=11435 LlamaScopeProxy      # domyślnie 11435 → 11434
+```
+
+a w kliencie ustawia `OLLAMA_HOST=http://127.0.0.1:11435` (albo
+`base_url` kończący się na `/v1`). Bez pośrednika aplikacja działa
+normalnie — po prostu nie widzi tego jednego przypadku.
 
 ---
 
 ## Wymagania
 
 - **macOS na Apple Silicon** (odczyt GPU idzie przez `ioreg`; na Intelu
-  program działa, tylko bez wykresu GPU),
-- **Python 3** — ten z systemu wystarczy, żadnych bibliotek,
+  skrypt działa, tylko bez wykresu GPU),
+- do skryptu: **Python 3** — ten z systemu wystarczy, żadnych bibliotek,
+- do aplikacji: **Xcode**, macOS 14 lub nowszy,
 - działająca **Ollama**.
 
-Bez `sudo`, bez instalacji, bez pliku konfiguracyjnego.
+Bez `sudo`, bez pliku konfiguracyjnego.
 
-## Uruchomienie
+## Uruchomienie skryptu
 
 ```bash
 git clone https://github.com/MarcinSNowak/llamascope.git
@@ -82,9 +144,30 @@ Jeśli serwer stoi pod innym adresem, ustaw `OLLAMA_HOST`:
 OLLAMA_HOST=http://192.168.1.10:11434 python3 llamascope.py
 ```
 
+## Zbudowanie aplikacji
+
+```bash
+cd llamascope/app
+xcodebuild -scheme LlamaScope -configuration Release build
+```
+
+Gotowy pakiet leży w `Build/Products/Release/LlamaScope.app` — pełną
+ścieżkę `xcodebuild` wypisze na końcu.
+
+**Wersja 0.5 jest niepodpisana i macOS będzie przy niej ostrzegał.**
+To ostrzeżenie mówi prawdę; dlaczego i co z tym zrobić, opisuje
+[INSTALACJA.md](INSTALACJA.md). Aplikacja **nie ma ikony w Docku** —
+szukaj jej w pasku menu u góry po prawej.
+
+W panelu jest nagłówek stanu, zdanie po ludzku, lista załadowanych
+modeli, obciążenie GPU, zajętość okna kontekstu, tempo ostatniej
+odpowiedzi, przyciski „Zwolnij teraz" i „Załaduj ponownie", włącznik
+pośrednika — oraz **napisana wprost granica wykrywania** z sekcji wyżej,
+na stałe, a nie w dokumentacji.
+
 ## W pasku menu (SwiftBar)
 
-Ten sam plik potrafi być wtyczką [SwiftBara](https://swiftbar.app) —
+Ten sam plik Pythona potrafi być wtyczką [SwiftBara](https://swiftbar.app) —
 dowiązanie w katalogu wtyczek, odświeżanie co 5 sekund. Nazwa pliku
 `llamascope.5s.py` to nie ozdoba: SwiftBar czyta z niej częstotliwość.
 
@@ -112,6 +195,9 @@ konkretne ostrzeżenie zamiast wykresu: `⚠ prompt ucięty`,
 `⚠ model poza GPU`, `⚠ mało pamięci`, `⚠ Ollama nie odpowiada`.
 Kliknięcie rozwija cały ekran z podglądu w terminalu.
 
+Jeśli używasz aplikacji natywnej, SwiftBar nie jest do niczego
+potrzebny — to dwie drogi do tego samego paska.
+
 ## Co dokładnie czyta
 
 | źródło | po co |
@@ -120,6 +206,7 @@ Kliknięcie rozwija cały ekran z podglądu w terminalu.
 | `ioreg -c AGXAccelerator` | obciążenie GPU, bez `sudo` i bez zależności |
 | `sysctl vm.swapusage` | czy **model** dołożył maszynie swapu |
 | log serwera Ollamy | ucięcia kontekstu i prędkość generowania |
+| treść żądań | **tylko z włączonym pośrednikiem** — znikające tury rozmowy |
 
 Ostrzeżenie o pamięci mówi o **pogorszeniu, które spowodował model**, a nie
 o stanie zastanym. Maszyna, która od rana siedzi na swapie, nie jest
@@ -132,29 +219,44 @@ plik wymiany i przy wejściu modelu 14B do pamięci wolne spadło z 1,4
 tylko do 1,1 GB, a użyte urosło z 13,6 do 17,9 GB.
 
 Log jest szukany kolejno w `/opt/homebrew/var/log/ollama.log`,
-`/usr/local/var/log/ollama.log` i `~/.ollama/logs/server.log`. Bez niego
-reszta działa, ale nie widać ucięć — czyli tego, co najważniejsze.
+`/usr/local/var/log/ollama.log` i `~/.ollama/logs/server.log`; aplikacja
+zagląda dodatkowo do `~/Library/Logs/Ollama/server.log`, gdzie trzyma go
+Ollama instalowana jako program z ikoną. Bez logu reszta działa, ale nie
+widać ucięć — czyli tego, co najważniejsze.
 
 ## Prywatność
 
-**Program nie widzi treści Twoich promptów ani odpowiedzi.** Nie dlatego,
-że obiecujemy ich nie czytać — dlatego, że w tych źródłach ich po prostu
+**Nic nie opuszcza Twojej maszyny.** Zero telemetrii, zero konta, zero
+połączeń poza `127.0.0.1`. To dotyczy obu programów i wszystkich trybów.
+
+Reszta zależy od tego, czy pośrednik jest włączony, i warto to rozdzielić:
+
+**Bez pośrednika — czyli skrypt i aplikacja w trybie domyślnym —
+program nie widzi treści Twoich promptów ani odpowiedzi.** Nie dlatego,
+że obiecujemy ich nie czytać: dlatego, że w tych źródłach ich po prostu
 nie ma. Log Ollamy zawiera liczby i zdarzenia, nie tekst rozmowy.
-Nic nie jest nigdzie wysyłane; jedyne połączenie sieciowe idzie do
-`127.0.0.1:11434`. Kod ma jakieś trzysta linii i po to jest tutaj
-otwarty, żeby dało się to sprawdzić samemu, a nie brać na słowo.
+W aplikacji jest to mocniejsze niż obietnica — kod, który umiałby
+zobaczyć prompt, **nie jest w nią wlinkowany** i sprawdza to jedna
+komenda `nm` z sekcji o pośredniku.
+
+**Z włączonym pośrednikiem program widzi treść promptów** — inaczej nie
+policzyłby, co przepadło. Zapisuje z nich wyłącznie liczby i etykiety,
+nigdy treść, i wyłącznie na tym dysku. Włącza się to samemu, świadomie,
+a panel mówi o tym wprost w chwili włączenia.
+
+Kod jest otwarty po to, żeby dało się to sprawdzić samemu, a nie brać na
+słowo.
 
 ## Stan projektu
 
-Wczesny i szczery: to działający skrypt, którego używamy codziennie, a nie
-gotowy program. Aplikacja natywna w pasku menu — z sześcioma stanami,
-przyciskiem „Zwolnij pamięć", podpisem i notaryzacją — jest w planach
-i pojawi się tutaj w wydaniach. Uwagi i zgłoszenia: przez *Issues*.
+Wczesny i szczery. Skrypt jest działającym narzędziem, którego używamy
+codziennie. Aplikacja natywna jest na szczeblu **0.5**: ma sześć stanów,
+„Zwolnij teraz", własny log, pośrednika i wprost napisaną granicę
+wykrywania — ale **nie ma podpisu ani notaryzacji**, więc instaluje się
+ją z ostrzeżeniem systemu.
 
-Kod aplikacji natywnej leży już w katalogu [`app/`](app/) i da się ją
-zbudować. Wersja 0.5 jest **niepodpisana**, więc macOS będzie przy niej
-ostrzegał — dlaczego i co z tym zrobić, opisuje
-[INSTALACJA.md](INSTALACJA.md). Podpis i notaryzacja dochodzą w 0.9.
+Dalej: 0.9 to Developer ID, notaryzacja i `.dmg` w *Releases*, 1.0 —
+strona z opisem i cask w Homebrew. Uwagi i zgłoszenia: przez *Issues*.
 
 ## Skąd to się wzięło
 
@@ -176,19 +278,31 @@ was silently truncated**. Ollama does not report truncation through its
 API; the only trace is a `WARN` line in the server log, which LlamaScope
 watches for you.
 
-macOS on Apple Silicon, Python 3 from the system, no dependencies, no
-`sudo`, no configuration: `python3 llamascope.py`. For the menu bar,
-create SwiftBar's plugin folder — it does not exist before SwiftBar's
-first launch — and symlink the same file into it as `llamascope.5s.py`;
-the Polish section above has the exact commands. It never sees your
-prompts or responses — that data is not present in any of the sources
-it reads.
+Two programs, same job: `llamascope.py` (Python 3 from the system, no
+dependencies, no `sudo` — just `python3 llamascope.py`; it also runs as a
+[SwiftBar](https://swiftbar.app) plugin, exact commands in the Polish
+section above), and a native menu-bar app in [`app/`](app/), built with
+`xcodebuild -scheme LlamaScope -configuration Release build`. **The app
+is version 0.5 and is not signed or notarized**, so macOS will warn about
+it — see [INSTALACJA.md](INSTALACJA.md) for why that warning is telling
+the truth and what to do about it.
 
 **Known limit** (measured on Ollama 0.32.14): the `WARN` line only appears
 when a *single message* exceeds the context window. When a *conversation*
 grows too long, Ollama silently drops the oldest messages — keeping the
-system prompt and the newest turns — and logs nothing at all. No log-based
-tool can catch that case, this one included.
+system prompt and the newest turns — and logs nothing at all. Worse, it
+logs `truncated = 0` for a request it just cut by 83%. We measured
+(2026-09-24) whether a token-count plateau just below the window ceiling
+could betray this: **it cannot.** No log-based tool can catch that case.
+
+Catching it requires sitting **between your client and Ollama**, so the
+app ships an opt-in proxy as a *separate process* — "off" means the
+process does not exist, and the app binary contains none of its code
+(`nm LlamaScope.app/Contents/MacOS/LlamaScope | grep -c ProxyCore` → 0).
+Without it, LlamaScope never sees your prompts, because that data is not
+present in any of the sources it reads. With it, it does see them, and
+records only numbers and labels — never text, and only on your disk.
+Nothing ever leaves your machine either way.
 
 ---
 
