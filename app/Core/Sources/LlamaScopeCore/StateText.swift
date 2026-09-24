@@ -41,6 +41,52 @@ public enum StateText {
         }
     }
 
+    /// Nagłówek panelu — **zdanie przed liczbą**, pierwsza z trzech reguł
+    /// projektowych z §7. Mówi, co się dzieje, i nie zawiera ani jednej
+    /// liczby; liczby są niżej, jako uzasadnienie.
+    public static func headline(_ state: AppState) -> String {
+        switch state {
+        case .promptTruncated: return "Prompt został ucięty"
+        case .modelOutsideGPU: return "Model nie mieści się w GPU"
+        case .memoryRunningOut: return "Pamięć się kończy"
+        case .holdingMemoryIdle: return "Model trzyma pamięć"
+        case .working: return "Wszystko gra"
+        case .asleep: return "Nic nie jest załadowane"
+        case .loadedActivityUnknown: return "Nie wiem, czy liczy"
+        case .ollamaNotResponding: return "Ollama nie odpowiada"
+        }
+    }
+
+    /// Co z tym zrobić. Druga reguła z §7 mówi, że każdy zły stan ma mieć
+    /// przycisk — ale przycisk mamy tylko do jednego stanu, bo tylko jedną
+    /// rzecz umiemy naprawić sami. Do pozostałych zostaje uczciwa rada.
+    ///
+    /// `nil` znaczy „nie ma czego naprawiać" i tak ma zostać: dopisanie tu
+    /// zdania do stanu spokojnego zamieniłoby panel w tapetę.
+    public static func howToFix(_ state: AppState) -> String? {
+        switch state {
+        case let .promptTruncated(truncation):
+            return "Okno tego modelu to \(tokens(truncation.limitTokens)). Albo powiększ "
+                + "je przy uruchamianiu modelu (num_ctx), albo podziel to, co wysyłasz, "
+                + "na kawałki. Sama odpowiedź, którą właśnie dostałeś, nie widziała "
+                + "większości Twojego tekstu."
+        case let .modelOutsideGPU(model, _):
+            return "Zwolnij pamięć — zamknij część programów albo wyłącz inne modele "
+                + "— i załaduj \(model.name) jeszcze raz. Dopóki część liczy się na "
+                + "procesorze, będzie kilka razy wolniej."
+        case .memoryRunningOut:
+            return "Zamknij, czego nie używasz, albo zwolnij model. Swap to dysk "
+                + "udający pamięć i przy modelu widać to natychmiast."
+        case .loadedActivityUnknown:
+            return "To jest luka w tej aplikacji, nie awaria Twojej maszyny. "
+                + "Zgłoś to razem z logiem — w środku jest napisane, czego szukałem."
+        case .ollamaNotResponding:
+            return "Uruchom serwer poleceniem: ollama serve"
+        case .holdingMemoryIdle, .working, .asleep:
+            return nil
+        }
+    }
+
     /// Kilka znaków do paska menu. Docelowo obok ikony.
     public static func shortLabel(_ state: AppState) -> String {
         switch state {
@@ -64,12 +110,26 @@ public enum StateText {
         + "w oknie. Gdy to rozmowa jest za długa, Ollama wyrzuca najstarsze "
         + "wiadomości i nie zapisuje tego w logu — tego nie zobaczę."
 
-    private static func tokens(_ count: Int) -> String {
+    /// Zajętość okna kontekstu do panelu szczegółów — trzecia liczba z logu
+    /// (§5), jedyna, którą widać **zanim** coś się utnie.
+    public static func windowFill(_ prompt: PromptAccepted) -> String {
+        let percent = Int((prompt.fill * 100).rounded())
+        return "\(number(prompt.promptTokens)) z \(number(prompt.windowTokens)) (\(percent)%)"
+    }
+
+    public static func gigabytesText(_ bytes: UInt64) -> String { gigabytes(bytes) }
+
+    public static func durationText(_ seconds: TimeInterval) -> String { duration(seconds) }
+
+    private static func number(_ count: Int) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = "\u{00A0}"
-        let number = formatter.string(from: NSNumber(value: count)) ?? "\(count)"
-        return "\(number) \(tokenWord(count))"
+        return formatter.string(from: NSNumber(value: count)) ?? "\(count)"
+    }
+
+    private static func tokens(_ count: Int) -> String {
+        "\(number(count)) \(tokenWord(count))"
     }
 
     /// Polska odmiana: 1 token, 2–4 tokeny, 5+ tokenów, z wyjątkiem

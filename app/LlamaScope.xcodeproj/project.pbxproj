@@ -8,14 +8,18 @@
 
 /* Begin PBXBuildFile section */
 		1DC761E0172D07AA5A7786D4 /* LlamaScopeCore in Frameworks */ = {isa = PBXBuildFile; productRef = C7C6C267E490B5DB3CAC6FCA /* LlamaScopeCore */; };
+		95E8583740D85826C5B8DB74 /* StatusPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D10D17ED7EECEDDEFA7AD7 /* StatusPanel.swift */; };
 		BBF8EE1050DAF15A9C0D996A /* LlamaScopeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C15C3800A5EAC01C36B0368E /* LlamaScopeApp.swift */; };
+		EF2237A84488B6BA29261D49 /* MenuBarIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7D9CB960957BBADF41F087F /* MenuBarIcon.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		3B9ED8BBA43F7BC199D0134F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		77D10D17ED7EECEDDEFA7AD7 /* StatusPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPanel.swift; sourceTree = "<group>"; };
 		9E3EB605A65B3C912DBEAA60 /* LlamaScope.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LlamaScope.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BF8EEAC002921CCD514FFC7C /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = Core; sourceTree = SOURCE_ROOT; };
 		C15C3800A5EAC01C36B0368E /* LlamaScopeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaScopeApp.swift; sourceTree = "<group>"; };
+		D7D9CB960957BBADF41F087F /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -35,6 +39,8 @@
 			children = (
 				3B9ED8BBA43F7BC199D0134F /* Info.plist */,
 				C15C3800A5EAC01C36B0368E /* LlamaScopeApp.swift */,
+				D7D9CB960957BBADF41F087F /* MenuBarIcon.swift */,
+				77D10D17ED7EECEDDEFA7AD7 /* StatusPanel.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -125,6 +131,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				BBF8EE1050DAF15A9C0D996A /* LlamaScopeApp.swift in Sources */,
+				EF2237A84488B6BA29261D49 /* MenuBarIcon.swift in Sources */,
+				95E8583740D85826C5B8DB74 /* StatusPanel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

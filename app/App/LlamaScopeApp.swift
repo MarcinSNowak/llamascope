@@ -1,18 +1,13 @@
 import LlamaScopeCore
 import SwiftUI
 
-/// Aplikacja w pasku menu — na razie szkielet.
+/// Aplikacja w pasku menu.
 ///
-/// Interfejs właściwy (ikony dla ośmiu stanów, szczegóły, „Zwolnij teraz")
-/// jest osobnym krokiem. Tutaj jest dokładnie tyle, ile trzeba, żeby
-/// sprawdzić, że pakiet .app powstaje, startuje **bez ikony w Docku**
-/// i pokazuje ten sam stan, który wypisuje sonda wiersza poleceń. Gdyby
-/// tego kroku nie było, projekt Xcode byłby pustą obietnicą zamiast czegoś,
-/// co się uruchamia.
-///
-/// Zdania o stanach biorą się z `StateText` w rdzeniu, nie stąd — żeby
-/// ikona i sonda nie mogły powiedzieć dwóch różnych rzeczy o tej samej
-/// chwili.
+/// Wszystko, co mówi i liczy, siedzi w rdzeniu (`LlamaScopeCore`) i jest
+/// sprawdzone testami. Tutaj zostaje samo rysowanie: ikona (`MenuBarIcon`)
+/// i panel pod nią (`StatusPanel`). Ten podział jest celowy — §12 wymaga,
+/// żeby rdzeń dało się sprawdzić bez uruchamiania interfejsu, a interfejs,
+/// który sam z siebie coś wylicza, ten wymóg po cichu łamie.
 @main
 struct LlamaScopeApp: App {
     @StateObject private var monitor: Monitor
@@ -25,21 +20,12 @@ struct LlamaScopeApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            Text(StateText.sentence(monitor.state))
-
-            Divider()
-
-            // Wymóg z §5, nie ozdoba: bez tego zdania obietnica narzędzia
-            // jest nieprawdziwa dla każdego, kto prowadzi z modelem rozmowę.
-            Text(StateText.detectionLimit)
-
-            Divider()
-
-            Button("Zakończ") { NSApplication.shared.terminate(nil) }
-                .keyboardShortcut("q")
+            StatusPanel(monitor: monitor)
         } label: {
-            Text(StateText.shortLabel(monitor.state))
+            MenuBarIcon(state: monitor.state, history: monitor.history)
         }
-        .menuBarExtraStyle(.menu)
+        // Okno, nie menu: panel z §7 ma słupki, wiersze liczb i przyciski,
+        // a pozycja menu potrafi być tylko wierszem tekstu.
+        .menuBarExtraStyle(.window)
     }
 }
