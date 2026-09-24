@@ -50,12 +50,15 @@ print("")
 if follow {
     var previous: String?
     while true {
-        let line = StateText.sentence(await monitor.refresh())
-        // Wypisujemy przy zmianie, nie co sekundę — inaczej po minucie nie
-        // da się odczytać, kiedy właściwie coś się wydarzyło.
-        if line != previous {
-            print("\(Date().formatted(date: .omitted, time: .standard))  \(line)")
-            previous = line
+        let state = await monitor.refresh()
+        // Porównujemy **rodzaj** stanu, nie całe zdanie. Zdanie o modelu
+        // bezczynnym zawiera odliczanie do zwolnienia pamięci, więc zmienia
+        // się co sekundę — porównywane w całości zalewało wydruk i chowało
+        // w nim te chwile, w których naprawdę coś się wydarzyło.
+        let kind = StateText.shortLabel(state)
+        if kind != previous {
+            print("\(Date().formatted(date: .omitted, time: .standard))  \(StateText.sentence(state))")
+            previous = kind
         }
         try? await Task.sleep(for: Monitor.defaultInterval)
     }

@@ -46,10 +46,12 @@ final class MonitorTests: XCTestCase {
             ),
             swapWatcher: SwapWatcher(store: InMemorySwapBaselineStore())
         )
-        guard case let .working(_, generation) = await monitor.refresh() else {
+        guard case .working = await monitor.refresh() else {
             return XCTFail("spodziewana praca, dostaliśmy \(monitor.state)")
         }
-        XCTAssertEqual(generation?.tokensPerSecond ?? 0, 54.31, accuracy: 0.01)
+        // Tempo jest, ale obok stanu i podpisane jako ostatnia odpowiedź —
+        // nie w zdaniu o trwającej pracy.
+        XCTAssertEqual(monitor.lastGeneration?.tokensPerSecond ?? 0, 54.31, accuracy: 0.01)
         XCTAssertEqual(monitor.lastRefresh, now)
     }
 

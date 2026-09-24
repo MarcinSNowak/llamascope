@@ -54,7 +54,14 @@ public enum AppState: Sendable, Equatable {
     /// 4. Trzyma pamięć bezczynnie.
     case holdingMemoryIdle(model: LoadedModel, releasesIn: TimeInterval?)
     /// 5. Pracuje.
-    case working(model: LoadedModel, generation: EvalSpeed?)
+    ///
+    /// Bez tempa generowania i to jest świadome. Ollama zapisuje szybkość
+    /// dopiero po **skończonej** odpowiedzi, więc każda liczba, którą mamy
+    /// w trakcie pracy, opisuje poprzednią odpowiedź, a nie tę trwającą.
+    /// Wstawiona tutaj wyglądałaby na bieżącą — czyli byłaby tym samym
+    /// rodzajem kłamstwa co „truncated = 0" w cudzym logu. Tempo pokazuje
+    /// panel, wprost podpisane jako ostatnia odpowiedź.
+    case working(model: LoadedModel)
     /// 6. Uśpiona. Spokój, nie awaria odczytu.
     case asleep
 
@@ -168,7 +175,7 @@ public enum StateRecognizer {
         }
 
         if input.working {
-            return .working(model: model, generation: input.log.lastGeneration)
+            return .working(model: model)
         }
 
         let releasesIn = model.expiresAt.map { $0.timeIntervalSince(input.now) }

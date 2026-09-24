@@ -72,7 +72,7 @@ final class StateTextTests: XCTestCase {
             .modelOutsideGPU(model: model(vram: 6_900_000_000), bytesOutside: 2_100_000_000),
             .memoryRunningOut(grownGB: 4.3),
             .holdingMemoryIdle(model: model(), releasesIn: 180),
-            .working(model: model(), generation: EvalSpeed(tokens: 209, tokensPerSecond: 54.31)),
+            .working(model: model()),
             .asleep,
             .loadedActivityUnknown(model: model(), reason: .statisticsNotFound(serviceClass: "AGXAccelerator")),
             .ollamaNotResponding(reason: "brak połączenia"),
@@ -99,7 +99,7 @@ final class StateTextTests: XCTestCase {
             .modelOutsideGPU(model: model(vram: 6_900_000_000), bytesOutside: 2_100_000_000),
             .memoryRunningOut(grownGB: 4.3),
             .holdingMemoryIdle(model: model(), releasesIn: 180),
-            .working(model: model(), generation: EvalSpeed(tokens: 209, tokensPerSecond: 54.31)),
+            .working(model: model()),
             .asleep,
             .loadedActivityUnknown(model: model(), reason: .statisticsNotFound(serviceClass: "AGXAccelerator")),
             .ollamaNotResponding(reason: "brak połączenia"),
@@ -117,7 +117,7 @@ final class StateTextTests: XCTestCase {
     /// który raz już popełniliśmy przy ostrzeżeniu o swapie (§5).
     func testAdviceOnlyWhereThereIsSomethingToFix() {
         XCTAssertNil(StateText.howToFix(.asleep))
-        XCTAssertNil(StateText.howToFix(.working(model: model(), generation: nil)))
+        XCTAssertNil(StateText.howToFix(.working(model: model())))
         XCTAssertNil(StateText.howToFix(.holdingMemoryIdle(model: model(), releasesIn: 180)),
                      "ten stan ma przycisk, więc rada byłaby powtórzeniem")
 

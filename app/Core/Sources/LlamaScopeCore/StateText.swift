@@ -28,9 +28,8 @@ public enum StateText {
         case let .holdingMemoryIdle(model, releasesIn):
             let when = releasesIn.map { ", zwolni za \(duration($0))" } ?? ""
             return "\(gigabytes(model.sizeBytes)) zajęte, nic nie liczy\(when) (\(model.name))."
-        case let .working(model, generation):
-            let speed = generation.map { " — \(decimal($0.tokensPerSecond)) tok/s" } ?? ""
-            return "\(model.name) pracuje\(speed)."
+        case let .working(model):
+            return "\(model.name) pracuje."
         case .asleep:
             return "Nic nie jest załadowane. Spokój."
         case let .loadedActivityUnknown(model, reason):
@@ -94,8 +93,7 @@ public enum StateText {
         case .modelOutsideGPU: return "poza GPU"
         case .memoryRunningOut: return "pamięć"
         case .holdingMemoryIdle: return "bezczynny"
-        case let .working(_, generation):
-            return generation.map { "\(Int($0.tokensPerSecond.rounded())) tok/s" } ?? "pracuje"
+        case .working: return "pracuje"
         case .asleep: return "—"
         case .loadedActivityUnknown: return "?"
         case .ollamaNotResponding: return "brak"
@@ -115,6 +113,14 @@ public enum StateText {
     public static func windowFill(_ prompt: PromptAccepted) -> String {
         let percent = Int((prompt.fill * 100).rounded())
         return "\(number(prompt.promptTokens)) z \(number(prompt.windowTokens)) (\(percent)%)"
+    }
+
+    /// Tempo **skończonej** odpowiedzi, do panelu. Podpisane wprost jako
+    /// ostatnia, bo w trakcie generowania Ollama nie zapisała jeszcze
+    /// szybkości tej trwającej i każda liczba pokazana bez tego podpisu
+    /// opisywałaby co innego, niż się wydaje.
+    public static func lastAnswer(_ generation: EvalSpeed) -> String {
+        "\(tokens(generation.tokens)), \(decimal(generation.tokensPerSecond)) tok/s"
     }
 
     public static func gigabytesText(_ bytes: UInt64) -> String { gigabytes(bytes) }

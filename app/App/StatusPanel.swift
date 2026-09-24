@@ -80,6 +80,12 @@ struct StatusPanel: View {
             if let prompt = monitor.lastPrompt {
                 row("Okno kontekstu", value: StateText.windowFill(prompt))
             }
+
+            // Podpisane „ostatnia", bo tempo trwającej odpowiedzi nie
+            // istnieje — Ollama zapisuje je dopiero na końcu.
+            if let generation = monitor.lastGeneration {
+                row("Ostatnia odpowiedź", value: StateText.lastAnswer(generation))
+            }
         }
     }
 

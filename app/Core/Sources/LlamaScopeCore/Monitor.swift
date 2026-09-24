@@ -73,6 +73,12 @@ public final class Monitor: ObservableObject {
     /// najważniejszym; szczegóły w popoverze pokazują wszystkie.
     @Published public private(set) var models: [LoadedModel] = []
 
+    /// Tempo ostatniej skończonej odpowiedzi. Świadomie **poza** stanem:
+    /// Ollama zapisuje szybkość dopiero po odpowiedzi, więc w trakcie pracy
+    /// ta liczba opisuje poprzednią. W panelu jest podpisana; w zdaniu
+    /// o stanie wyglądałaby na bieżącą.
+    @Published public private(set) var lastGeneration: EvalSpeed?
+
     /// Zajętość okna z ostatniego żądania. Osobno od stanu, bo to liczba do
     /// panelu szczegółów, a nie powód do zapalenia ikony.
     @Published public private(set) var lastPrompt: PromptAccepted?
@@ -151,6 +157,7 @@ public final class Monitor: ObservableObject {
             gate.reset()
         }
         lastPrompt = logState.lastPrompt
+        lastGeneration = logState.lastGeneration
 
         let working = gate.update(percent: gpu.percent, now: now)
 

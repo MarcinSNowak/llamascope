@@ -145,16 +145,24 @@ final class AppStateTests: XCTestCase {
         XCTAssertNil(releasesIn, "przeterminowany odliczacz ma milczeć, a nie liczyć wstecz")
     }
 
-    func testWorkingCarriesTheGenerationSpeed() {
+    /// Stan pracy **nie** niesie tempa i to jest cała poprawka: Ollama
+    /// zapisuje szybkość dopiero po skończonej odpowiedzi, więc liczba
+    /// dostępna w trakcie pracy opisuje poprzednią odpowiedź. Widzieliśmy to
+    /// na żywo — aplikacja pokazywała „57,4 tok/s" o generowaniu, które
+    /// skończyło się kilkanaście sekund wcześniej.
+    func testWorkingDoesNotCarryTheSpeedOfSomeEarlierAnswer() {
         var log = OllamaLogState()
         log.apply([.generationEval(EvalSpeed(tokens: 209, tokensPerSecond: 54.31))])
         let state = StateRecognizer.recognize(StateInput(
             now: now, models: [model()], gpu: busyGPU(96), swap: .steady, log: log
         ))
-        guard case let .working(_, generation) = state else {
+        guard case .working = state else {
             return XCTFail("spodziewana praca, dostaliśmy \(state)")
         }
-        XCTAssertEqual(generation?.tokensPerSecond ?? 0, 54.31, accuracy: 0.01)
+        XCTAssertFalse(StateText.sentence(state).contains("54"),
+                       "tempo poprzedniej odpowiedzi wróciło do zdania o pracy")
+        XCTAssertFalse(StateText.shortLabel(state).contains("tok/s"),
+                       "tempo poprzedniej odpowiedzi wróciło na etykietę w pasku")
     }
 
     func testFivePercentIsStillIdle() {
