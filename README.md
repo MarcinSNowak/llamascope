@@ -42,7 +42,7 @@ W tym repozytorium są **dwa programy**, robiące to samo na dwa sposoby:
 |---|---|---|
 | plik | `llamascope.py` | katalog [`app/`](app/) |
 | gdzie mieszka | terminal albo [SwiftBar](https://swiftbar.app) | własna ikona w pasku menu |
-| stan | używany codziennie od 2026-09-06 | **0.5, niepodpisana** — [INSTALACJA.md](INSTALACJA.md) |
+| stan | używany codziennie od 2026-09-06 | **0.9, podpisana i notaryzowana** — [INSTALACJA.md](INSTALACJA.md) |
 | pośrednik (niżej) | nie ma | jest, domyślnie wyłączony |
 
 Skrypt nie jest etapem przejściowym do skasowania — jest wersją bez
@@ -154,10 +154,12 @@ xcodebuild -scheme LlamaScope -configuration Release build
 Gotowy pakiet leży w `Build/Products/Release/LlamaScope.app` — pełną
 ścieżkę `xcodebuild` wypisze na końcu.
 
-**Wersja 0.5 jest niepodpisana i macOS będzie przy niej ostrzegał.**
-To ostrzeżenie mówi prawdę; dlaczego i co z tym zrobić, opisuje
-[INSTALACJA.md](INSTALACJA.md). Aplikacja **nie ma ikony w Docku** —
-szukaj jej w pasku menu u góry po prawej.
+Gotowy `.dmg` — podpisany i notaryzowany — leży w
+[wydaniach](https://github.com/MarcinSNowak/llamascope/releases);
+budowanie ze źródeł jest drugą drogą, nie jedyną
+([INSTALACJA.md](INSTALACJA.md)). Aplikacja **nie ma ikony w Docku** —
+szukaj jej w pasku menu u góry po prawej. Panel mówi po polsku albo po
+angielsku, zależnie od języków ustawionych w systemie.
 
 W panelu jest nagłówek stanu, zdanie po ludzku, lista załadowanych
 modeli, obciążenie GPU, zajętość okna kontekstu, tempo ostatniej
@@ -250,13 +252,14 @@ słowo.
 ## Stan projektu
 
 Wczesny i szczery. Skrypt jest działającym narzędziem, którego używamy
-codziennie. Aplikacja natywna jest na szczeblu **0.5**: ma sześć stanów,
-„Zwolnij teraz", własny log, pośrednika i wprost napisaną granicę
-wykrywania — ale **nie ma podpisu ani notaryzacji**, więc instaluje się
-ją z ostrzeżeniem systemu.
+codziennie. Aplikacja natywna jest na szczeblu **0.9**: ma sześć stanów,
+„Zwolnij teraz", własny log, pośrednika, wprost napisaną granicę
+wykrywania, interfejs po polsku i po angielsku — oraz podpis Developer ID
+i notaryzację, więc instaluje się ją bez obchodzenia czegokolwiek.
 
-Dalej: 0.9 to Developer ID, notaryzacja i `.dmg` w *Releases*, 1.0 —
-strona z opisem i cask w Homebrew. Uwagi i zgłoszenia: przez *Issues*.
+Czego wciąż nie ma: automatycznych aktualizacji i caska w Homebrew.
+Dalej: 1.0 to strona z opisem i Homebrew. Uwagi i zgłoszenia: przez
+*Issues*.
 
 ## Skąd to się wzięło
 
@@ -283,9 +286,11 @@ dependencies, no `sudo` — just `python3 llamascope.py`; it also runs as a
 [SwiftBar](https://swiftbar.app) plugin, exact commands in the Polish
 section above), and a native menu-bar app in [`app/`](app/), built with
 `xcodebuild -scheme LlamaScope -configuration Release build`. **The app
-is version 0.5 and is not signed or notarized**, so macOS will warn about
-it — see [INSTALACJA.md](INSTALACJA.md) for why that warning is telling
-the truth and what to do about it.
+is version 0.9, signed with a Developer ID and notarized** — a ready
+`.dmg` is in
+[Releases](https://github.com/MarcinSNowak/llamascope/releases), and
+[INSTALACJA.md](INSTALACJA.md) ends with an English summary. Its
+interface is in Polish or English, following your system languages.
 
 **Known limit** (measured on Ollama 0.32.14): the `WARN` line only appears
 when a *single message* exceeds the context window. When a *conversation*
