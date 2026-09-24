@@ -51,19 +51,27 @@ targets:
         # Narzędzie, które mieszka w pasku stanu, ma być w pasku stanu.
         LSUIElement: true
         CFBundleName: LlamaScope
-        CFBundleShortVersionString: "0.5"
-        CFBundleVersion: "1"
+        CFBundleShortVersionString: "0.9"
+        CFBundleVersion: "2"
         NSHumanReadableCopyright: "LlamaScope — MIT"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.qshmobile.LlamaScope
-        MARKETING_VERSION: "0.5"
+        MARKETING_VERSION: "0.9"
         SWIFT_VERSION: "5.0"
-        # Szczebel 0.5 jest niepodpisany świadomie (§14). Podpisywanie
-        # dochodzi razem z drugim celem dla pośrednika.
-        CODE_SIGN_IDENTITY: "-"
-        CODE_SIGNING_REQUIRED: "NO"
-        ENABLE_HARDENED_RUNTIME: "NO"
+        # Szczebel 0.9 z §14: podpis Developer ID i notaryzacja. Tożsamość
+        # wpisana wprost, a nie zostawiona automatowi — automat wybiera to,
+        # co akurat jest w pęku kluczy, a w tym pęku leży też „Apple
+        # Distribution”, którym nie wolno podpisać czegoś rozdawanego poza
+        # App Store. Zły podpis przechodzi budowę i przewraca się dopiero
+        # u kogoś obcego, czyli najpóźniej jak się da.
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: 83L8M7P67X
+        CODE_SIGN_IDENTITY: "Developer ID Application"
+        # Notaryzacja odrzuca pakiet bez hardened runtime, bez znacznika
+        # czasu i bez podpisu na **każdym** pliku wykonywalnym w środku.
+        ENABLE_HARDENED_RUNTIME: "YES"
+        OTHER_CODE_SIGN_FLAGS: "--timestamp"
 
   # Pośrednik z §12 jako osobny program w pakiecie. Źródła te same, co
   # bierze SwiftPM — jeden kod, dwa sposoby zbudowania: `swift run` dla
@@ -82,8 +90,15 @@ targets:
       base:
         PRODUCT_NAME: LlamaScopeProxy
         SWIFT_VERSION: "5.0"
-        CODE_SIGN_IDENTITY: "-"
-        CODE_SIGNING_REQUIRED: "NO"
+        # Pośrednik podpisany tak samo jak aplikacja i z tego samego powodu:
+        # to osobny plik wykonywalny w pakiecie, a notaryzacja patrzy na
+        # każdy z osobna. Podpisuje się jako pierwszy — aplikacja liczy swój
+        # podpis z tego, co już w niej leży.
+        CODE_SIGN_STYLE: Manual
+        DEVELOPMENT_TEAM: 83L8M7P67X
+        CODE_SIGN_IDENTITY: "Developer ID Application"
+        ENABLE_HARDENED_RUNTIME: "YES"
+        OTHER_CODE_SIGN_FLAGS: "--timestamp"
 
 # Schemat wpisany wprost, a nie zostawiony Xcode do dorobienia u siebie.
 # Bez tego `xcodebuild -scheme LlamaScope` działa na tej maszynie i nie

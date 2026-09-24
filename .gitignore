@@ -12,3 +12,6 @@ app/Core/.build/
 xcuserdata/
 *.xcworkspace/xcuserdata/
 DerivedData/
+
+# Wyniki budowy wydania: .app, .dmg, katalog montażowy.
+build/
