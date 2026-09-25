@@ -10,10 +10,11 @@
 # that lets a bad release through. So there is exactly one copy of the
 # checks and two sets of sentences; this file selects the English ones.
 #
-# Every message you will see is in English. The comments explaining *why*
-# each check exists are in `wydanie.sh`, in Polish; that file is worth
-# reading before changing anything here, because most of those checks were
-# added after something got through.
+# Every message you will see is in English. The comments in `wydanie.sh`
+# are given twice — Polish first, then the same thing after an `# EN:`
+# marker — so the reasoning behind each check is readable either way. That
+# file is worth reading before changing anything here: most of those checks
+# were added after something got through.
 #
 # Usage:
 #   ./release.sh                    — build, sign, notarize, make the .dmg
