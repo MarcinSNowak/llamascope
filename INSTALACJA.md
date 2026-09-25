@@ -48,6 +48,12 @@ Pobierz `LlamaScope-0.9.dmg` z
 [wydań](https://github.com/MarcinSNowak/llamascope/releases), otwórz
 i przeciągnij aplikację do `/Applications`. To wszystko.
 
+**Tylko Apple Silicon.** Na Macu z Intelem system odmówi otwarcia
+i będzie miał rację: aplikacja pokazałaby tam panel, w którym odczyty
+GPU nic nie znaczą — a to jest dokładnie ten rodzaj spokojnego zera,
+który LlamaScope ma łapać, a nie produkować. Skrypt `llamascope.py`
+działa na Intelu dalej, bez wykresu GPU.
+
 Jeżeli chcesz zobaczyć, co dokładnie system o tym pliku wie:
 
 ```sh
@@ -135,6 +141,11 @@ To check what the system actually knows about the downloaded app:
 ```sh
 spctl --assess --type execute --verbose=2 /Applications/LlamaScope.app
 ```
+
+**Apple Silicon only.** On an Intel Mac the system will refuse to open
+it, and rightly so: the app would show a panel whose GPU readings mean
+nothing there — exactly the kind of calm zero LlamaScope exists to catch.
+The `llamascope.py` script still works on Intel, minus the GPU chart.
 
 It must say `Notarized Developer ID`. A bare `accepted` is not enough —
 a locally built app gets `accepted` before anything is notarized,

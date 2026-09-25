@@ -123,7 +123,12 @@ normalnie — po prostu nie widzi tego jednego przypadku.
 - **macOS na Apple Silicon** (odczyt GPU idzie przez `ioreg`; na Intelu
   skrypt działa, tylko bez wykresu GPU),
 - do skryptu: **Python 3** — ten z systemu wystarczy, żadnych bibliotek,
-- do aplikacji: **Xcode**, macOS 14 lub nowszy,
+- do aplikacji: macOS 14 lub nowszy, **wyłącznie Apple Silicon** —
+  pakiet jest zbudowany tylko dla `arm64` i na Intelu system odmówi
+  otwarcia. To nie jest niedoróbka: aplikacja uruchomiona na Intelu
+  pokazałaby panel, w którym odczyty GPU nic nie znaczą, czyli zero
+  wyglądające na pomiar. Skrypt Pythona działa tam dalej,
+- do budowania ze źródeł: **Xcode**,
 - działająca **Ollama**.
 
 Bez `sudo`, bez pliku konfiguracyjnego.
