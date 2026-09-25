@@ -51,6 +51,13 @@ targets:
         # Narzędzie, które mieszka w pasku stanu, ma być w pasku stanu.
         LSUIElement: true
         CFBundleName: LlamaScope
+        # Ikona pakietu. `LSUIElement` zdejmuje aplikację z Docka, ale nie
+        # z Findera, Launchpada, ustawień systemu ani z okien, w których
+        # Gatekeeper pyta, czy na pewno to otworzyć — a tam pakiet bez
+        # ikony dostaje biały prostokąt, czyli wygląda na niedokończony
+        # dokładnie w chwili, w której ktoś decyduje, czy nam ufa.
+        # Plik powstaje ze skryptu `ikona.swift` w korzeniu repozytorium.
+        CFBundleIconFile: LlamaScope
         CFBundleShortVersionString: "0.9"
         CFBundleVersion: "2"
         NSHumanReadableCopyright: "LlamaScope — MIT"

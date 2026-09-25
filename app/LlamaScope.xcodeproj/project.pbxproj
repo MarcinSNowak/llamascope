@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		02ECF8BC470F0D34B0EFB7B6 /* LlamaScope.icns in Resources */ = {isa = PBXBuildFile; fileRef = 54CA65BCFC060032AFD05765 /* LlamaScope.icns */; };
 		1121A50A38FB30439773FD6F /* Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B63CD36F957AD9CFDD98221 /* Connection.swift */; };
 		127BF52092B420E4ABFA0F75 /* Proxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4D66155C55A960492F1081C /* Proxy.swift */; };
 		1DC761E0172D07AA5A7786D4 /* LlamaScopeCore in Frameworks */ = {isa = PBXBuildFile; productRef = C7C6C267E490B5DB3CAC6FCA /* LlamaScopeCore */; };
@@ -51,6 +52,7 @@
 		3B9ED8BBA43F7BC199D0134F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4879E9B9941E0E6CCC3CC24A /* Upstream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Upstream.swift; sourceTree = "<group>"; };
 		4FD0D38CB7879BB3AB180C70 /* ObservationLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationLog.swift; sourceTree = "<group>"; };
+		54CA65BCFC060032AFD05765 /* LlamaScope.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = LlamaScope.icns; sourceTree = "<group>"; };
 		77D10D17ED7EECEDDEFA7AD7 /* StatusPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusPanel.swift; sourceTree = "<group>"; };
 		8842C92D0964397D727C86BA /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		8A042CC402302EFB6AFBC1E4 /* ProxyControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProxyControl.swift; sourceTree = "<group>"; };
@@ -93,6 +95,7 @@
 				D7D9CB960957BBADF41F087F /* MenuBarIcon.swift */,
 				8A042CC402302EFB6AFBC1E4 /* ProxyControl.swift */,
 				77D10D17ED7EECEDDEFA7AD7 /* StatusPanel.swift */,
+				2EECBEE8A4E447258CAAAE46 /* Resources */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -104,6 +107,14 @@
 				B29462BC76BB1A8198F84C65 /* LlamaScopeProxy */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		2EECBEE8A4E447258CAAAE46 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				54CA65BCFC060032AFD05765 /* LlamaScope.icns */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		524F8698DD4AEE8E3C67E690 /* Sources */ = {
@@ -180,6 +191,7 @@
 			buildConfigurationList = 34BBC5698441142D178388DC /* Build configuration list for PBXNativeTarget "LlamaScope" */;
 			buildPhases = (
 				7E776FB9AD209FB20A3ACB38 /* Sources */,
+				91E6442CEEEC475DF17DA33F /* Resources */,
 				A57AA9E788D61205A39CCB41 /* Frameworks */,
 				978EB1163A0C2CFED37E8CE4 /* Embed Dependencies */,
 			);
@@ -238,6 +250,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		91E6442CEEEC475DF17DA33F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				02ECF8BC470F0D34B0EFB7B6 /* LlamaScope.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		10D984AD9A95D6C735C3E44A /* Sources */ = {

@@ -166,6 +166,12 @@ budowanie ze źródeł jest drugą drogą, nie jedyną
 szukaj jej w pasku menu u góry po prawej. Panel mówi po polsku albo po
 angielsku, zależnie od języków ustawionych w systemie.
 
+Ikonę pakietu — tę widoczną w Finderze i w Launchpadzie — rysuje
+[`ikona.swift`](ikona.swift) (`swift ikona.swift`); gotowy `.icns` leży
+w repozytorium, więc do samej budowy skrypt nie jest potrzebny. To ten
+sam wykres co w pasku menu, z jedną próbką celowo pustą: brak odczytu
+nie jest zerem, także na obrazku.
+
 W panelu jest nagłówek stanu, zdanie po ludzku, lista załadowanych
 modeli, obciążenie GPU, zajętość okna kontekstu, tempo ostatniej
 odpowiedzi, przyciski „Zwolnij teraz" i „Załaduj ponownie", włącznik

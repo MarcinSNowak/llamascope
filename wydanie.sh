@@ -59,6 +59,18 @@ krok "2/8  Budowa od zera"
 # pośrednika do pakietu, więc po zmianie ustawień podpisu w środku zostaje
 # stary plik z podpisem ad-hoc — a `codesign --verify --deep` i tak mówi
 # wtedy „valid on disk”. Raz już na to weszliśmy.
+# Ikona jest rysowana skryptem, a w repozytorium leży gotowy .icns — żeby
+# budowa nie wymagała uruchamiania niczego poza Xcode. Dwa źródła tego
+# samego obrazka mogą się rozjechać, więc przed budową odtwarzamy plik
+# i porównujemy. Plik zostaje odtworzony, ale różnica przerywa wydanie:
+# znaczy, że ktoś zmienił skrypt i nie przepuścił nowej ikony przez
+# repozytorium, a to jest rzecz do zauważenia teraz, nie po wydaniu.
+icns="$ROOT/app/App/Resources/LlamaScope.icns"
+before="$(shasum -a 256 "$icns" | cut -d' ' -f1)"
+( cd "$ROOT" && swift ikona.swift >/dev/null ) || zle "skrypt ikony się wywrócił"
+[ "$before" = "$(shasum -a 256 "$icns" | cut -d' ' -f1)" ] \
+    || zle "ikona w repozytorium nie zgadza się ze skryptem — zatwierdź nową"
+
 ( cd "$ROOT/app" && xcodegen generate >/dev/null )
 ( cd "$ROOT/app" && xcodebuild -scheme "$SCHEME" -configuration Release \
     clean build 2>&1 | grep -E "error:|BUILD" )
@@ -103,6 +115,16 @@ krok "4/8  Obietnica z §9"
 count="$(nm "$APP/Contents/MacOS/$APP_NAME" | grep -c ProxyCore || true)"
 [ "$count" = "0" ] || zle "ProxyCore wszedł do binarki aplikacji ($count symboli)"
 echo "  ok  aplikacja nie zawiera kodu pośrednika"
+
+# Ikona w pakiecie. Dwie osobne rzeczy, bo każda z nich potrafi zniknąć
+# sama: wpis w Info.plist (zmiana w project.yml bez `xcodegen generate`)
+# i sam plik (kopiowanie zasobów, które cicho się nie wykonało). Pakiet
+# z wpisem bez pliku wygląda w Finderze tak samo jak pakiet bez ikony.
+/usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$APP/Contents/Info.plist" \
+    >/dev/null 2>&1 || zle "brak CFBundleIconFile w Info.plist"
+[ -s "$APP/Contents/Resources/LlamaScope.icns" ] \
+    || zle "brak pliku ikony w pakiecie"
+echo "  ok  pakiet ma ikonę"
 
 # ---------------------------------------------------------------------
 krok "5/8  Obraz .dmg"
