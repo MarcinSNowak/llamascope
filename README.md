@@ -332,7 +332,7 @@ section above), and a native menu-bar app in [`app/`](app/), built with
 is version 0.9.1, signed with a Developer ID and notarized** — a ready
 `.dmg` is in
 [Releases](https://github.com/MarcinSNowak/llamascope/releases), and
-[INSTALACJA.md](INSTALACJA.md) ends with an English summary. Its
+[INSTALL.md](INSTALL.md) walks through both routes in English. Its
 interface is in Polish or English, following your system languages.
 
 **Known limit** (measured on Ollama 0.32.14): the `WARN` line only appears

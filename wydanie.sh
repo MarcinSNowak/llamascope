@@ -16,6 +16,8 @@
 #   ./wydanie.sh              — buduje, podpisuje, notaryzuje, robi .dmg
 #   ./wydanie.sh --bez-notaryzacji — wszystko oprócz notaryzacji (szybkie)
 #
+# Po angielsku: ./release.sh (ten sam skrypt, inne zdania — patrz niżej).
+#
 # Wymaga raz, przed pierwszym użyciem:
 #   xcrun notarytool store-credentials llamascope \
 #       --apple-id <twój-apple-id> --team-id 83L8M7P67X
@@ -33,13 +35,123 @@ STAGING="$ROOT/build/dmg"
 OUTPUT="$ROOT/build"
 
 NOTARIZE="yes"
-[ "${1:-}" = "--bez-notaryzacji" ] && NOTARIZE="no"
+case "${1:-}" in --bez-notaryzacji|--no-notarization) NOTARIZE="no" ;; esac
+
+# ---------------------------------------------------------------------
+# Zdania, w dwóch językach.
+#
+# Angielska wersja tego pliku to `release.sh` i jest **jedną linijką**,
+# która woła ten skrypt z LLAMASCOPE_LANG=en. Nie jest tłumaczeniem, i to
+# jest cała rzecz: druga kopia tych ośmiu kroków rozjechałaby się z tą przy
+# pierwszym sprawdzeniu dopisanym tylko do jednej z nich — po cichu i
+# w tę stronę, która przepuszcza złe wydanie. Sprawdzenia są więc w jednym
+# egzemplarzu, a zdania w dwóch.
+#
+# `msg` przerywa, gdy klucza brakuje w którymś języku. Bez tego brakujące
+# tłumaczenie dałoby pusty komunikat — czyli krok, który wygląda, jakby
+# przeszedł bez słowa. Ta sama rodzina co `truncated = 0`.
+LANGUAGE="${LLAMASCOPE_LANG:-pl}"
+
+tekst_pl() {
+    case "$1" in
+    krok_testy)      echo '1/8  Testy' ;;
+    testy_czerwone)  echo 'testy nie przechodzą' ;;
+    brak_podsumowan) echo 'nie widzę ani jednego podsumowania XCTest — czy test w ogóle poszedł?' ;;
+    krok_budowa)     echo '2/8  Budowa od zera' ;;
+    ikona_skrypt)    echo 'skrypt ikony się wywrócił' ;;
+    ikona_rozjazd)   echo 'ikona w repozytorium nie zgadza się ze skryptem — zatwierdź nową' ;;
+    wersja_rozjazd)  echo 'LlamaScopeVersion.current nie zgadza się z MARKETING_VERSION (%s)' ;;
+    brak_pakietu)    echo 'nie widzę pakietu: %s' ;;
+    pakiet)          echo 'pakiet: %s' ;;
+    krok_podpis)     echo '3/8  Podpis — każdy plik wykonywalny z osobna' ;;
+    podpis_obcy)     echo 'podpis ad-hoc albo cudzy: %s' ;;
+    brak_runtime)    echo 'brak hardened runtime: %s' ;;
+    task_allow)      echo 'uprawnienie get-task-allow: %s' ;;
+    nie_arm64)       echo 'nie sam arm64: %s (%s)' ;;
+    weryfikacja)     echo 'pakiet nie przechodzi weryfikacji' ;;
+    krok_obietnica)  echo '4/8  Obietnica z §9' ;;
+    proxy_w_app)     echo 'ProxyCore wszedł do binarki aplikacji (%s symboli)' ;;
+    ok_bez_proxy)    echo '  ok  aplikacja nie zawiera kodu pośrednika' ;;
+    brak_wpisu)      echo 'brak CFBundleIconFile w Info.plist' ;;
+    brak_ikony)      echo 'brak pliku ikony w pakiecie' ;;
+    ok_ikona)        echo '  ok  pakiet ma ikonę' ;;
+    krok_obraz)      echo '5/8  Obraz .dmg' ;;
+    brak_wolumenu)   echo 'obraz nie ma ikony woluminu (atrybuty: %s)' ;;
+    ok_wolumen)      echo '  ok  obraz ma ikonę woluminu' ;;
+    gotowe_bez)      echo 'Gotowe (bez notaryzacji).' ;;
+    tylko_tutaj)     echo 'Ten obraz otworzy się tylko na tej maszynie. Do rozdania trzeba' ;;
+    tylko_tutaj2)    echo 'go przepuścić przez notaryzację — uruchom bez --bez-notaryzacji.' ;;
+    krok_notaryzacja) echo '6/8  Notaryzacja (to trwa kilka minut)' ;;
+    apple_odrzucilo) echo 'Apple odrzuciło pakiet. Powód:' ;;
+    notaryzacja_zla) echo 'notaryzacja nieudana' ;;
+    krok_przyszycie) echo '7/8  Przyszycie zaświadczenia' ;;
+    krok_sprawdzenie) echo '8/8  Sprawdzenie na tym, co wyjdzie z paczki' ;;
+    gatekeeper_nie)  echo 'Gatekeeper odrzuca pakiet z obrazu' ;;
+    bez_zaswiadczenia) echo 'przeszło, ale nie jako notaryzowane — zaświadczenie się nie przyszyło' ;;
+    gotowe)          echo 'Gotowe: %s' ;;
+    do_rozdania)     echo 'Ten plik można rozdać.' ;;
+    esac
+}
+
+tekst_en() {
+    case "$1" in
+    krok_testy)      echo '1/8  Tests' ;;
+    testy_czerwone)  echo 'the tests are failing' ;;
+    brak_podsumowan) echo 'not one XCTest summary in the output — did the tests run at all?' ;;
+    krok_budowa)     echo '2/8  Clean build' ;;
+    ikona_skrypt)    echo 'the icon script fell over' ;;
+    ikona_rozjazd)   echo 'the icon in the repository does not match the script — commit the new one' ;;
+    wersja_rozjazd)  echo 'LlamaScopeVersion.current does not match MARKETING_VERSION (%s)' ;;
+    brak_pakietu)    echo 'no bundle here: %s' ;;
+    pakiet)          echo 'bundle: %s' ;;
+    krok_podpis)     echo '3/8  Signature — every executable on its own' ;;
+    podpis_obcy)     echo 'ad-hoc or somebody else’s signature: %s' ;;
+    brak_runtime)    echo 'no hardened runtime: %s' ;;
+    task_allow)      echo 'get-task-allow entitlement: %s' ;;
+    nie_arm64)       echo 'not arm64 alone: %s (%s)' ;;
+    weryfikacja)     echo 'the bundle does not pass verification' ;;
+    krok_obietnica)  echo '4/8  The promise from §9' ;;
+    proxy_w_app)     echo 'ProxyCore got into the app binary (%s symbols)' ;;
+    ok_bez_proxy)    echo '  ok  the app contains no proxy code' ;;
+    brak_wpisu)      echo 'no CFBundleIconFile in Info.plist' ;;
+    brak_ikony)      echo 'no icon file in the bundle' ;;
+    ok_ikona)        echo '  ok  the bundle has an icon' ;;
+    krok_obraz)      echo '5/8  The .dmg image' ;;
+    brak_wolumenu)   echo 'the image has no volume icon (attributes: %s)' ;;
+    ok_wolumen)      echo '  ok  the image has a volume icon' ;;
+    gotowe_bez)      echo 'Done (without notarization).' ;;
+    tylko_tutaj)     echo 'This image will only open on this machine. To hand it out, put' ;;
+    tylko_tutaj2)    echo 'it through notarization — run without --no-notarization.' ;;
+    krok_notaryzacja) echo '6/8  Notarization (this takes a few minutes)' ;;
+    apple_odrzucilo) echo 'Apple rejected the package. Reason:' ;;
+    notaryzacja_zla) echo 'notarization failed' ;;
+    krok_przyszycie) echo '7/8  Stapling the ticket' ;;
+    krok_sprawdzenie) echo '8/8  Checking the thing that comes out of the image' ;;
+    gatekeeper_nie)  echo 'Gatekeeper rejects the app from the image' ;;
+    bez_zaswiadczenia) echo 'accepted, but not as notarized — the ticket did not staple' ;;
+    gotowe)          echo 'Done: %s' ;;
+    do_rozdania)     echo 'This file can be handed out.' ;;
+    esac
+}
+
+msg() {
+    local key="$1"; shift
+    local fmt
+    fmt="$("tekst_$LANGUAGE" "$key")"
+    [ -n "$fmt" ] || {
+        printf '\033[31mbrak zdania dla klucza „%s" w języku %s\033[0m\n' \
+            "$key" "$LANGUAGE" >&2
+        exit 1
+    }
+    # shellcheck disable=SC2059 — wzorzec pochodzi z tablicy wyżej, nie z zewnątrz
+    printf "$fmt" "$@"
+}
 
 krok() { printf '\n\033[1m%s\033[0m\n' "$*"; }
 zle()  { printf '\033[31m%s\033[0m\n' "$*" >&2; exit 1; }
 
 # ---------------------------------------------------------------------
-krok "1/8  Testy"
+krok "$(msg krok_testy)"
 # Wersja do rozdania z czerwonymi testami to nie wersja, tylko kłopot
 # rozesłany szerzej.
 #
@@ -48,13 +160,13 @@ krok "1/8  Testy"
 # pakiet używa XCTest — czyli zielone zdanie o czymś, czego nie policzono.
 log="$(mktemp)"
 ( cd "$ROOT/app/Core" && swift test ) > "$log" 2>&1 \
-    || { grep -E "error:|failed" "$log" | head -20; zle "testy nie przechodzą"; }
+    || { grep -E "error:|failed" "$log" | head -20; zle "$(msg testy_czerwone)"; }
 grep -E "^Test Suite '.*xctest' (passed|failed)" -A1 "$log" | grep -E "Executed" \
-    || zle "nie widzę ani jednego podsumowania XCTest — czy test w ogóle poszedł?"
+    || zle "$(msg brak_podsumowan)"
 rm -f "$log"
 
 # ---------------------------------------------------------------------
-krok "2/8  Budowa od zera"
+krok "$(msg krok_budowa)"
 # `clean` nie jest ostrożnością. Budowa przyrostowa **nie kopiuje na nowo**
 # pośrednika do pakietu, więc po zmianie ustawień podpisu w środku zostaje
 # stary plik z podpisem ad-hoc — a `codesign --verify --deep` i tak mówi
@@ -67,9 +179,9 @@ krok "2/8  Budowa od zera"
 # repozytorium, a to jest rzecz do zauważenia teraz, nie po wydaniu.
 icns="$ROOT/app/App/Resources/LlamaScope.icns"
 before="$(shasum -a 256 "$icns" | cut -d' ' -f1)"
-( cd "$ROOT" && swift ikona.swift >/dev/null ) || zle "skrypt ikony się wywrócił"
+( cd "$ROOT" && swift ikona.swift >/dev/null ) || zle "$(msg ikona_skrypt)"
 [ "$before" = "$(shasum -a 256 "$icns" | cut -d' ' -f1)" ] \
-    || zle "ikona w repozytorium nie zgadza się ze skryptem — zatwierdź nową"
+    || zle "$(msg ikona_rozjazd)"
 
 # Sonda z wiersza poleceń nie ma Info.plist, więc numer wydania trzyma
 # w kodzie. Rozjazd z `project.yml` nie wywalałby niczego — dałby paczkę
@@ -77,7 +189,7 @@ before="$(shasum -a 256 "$icns" | cut -d' ' -f1)"
 # liczbę wyglądającą na odczytaną, a wziętą sprzed trzech szczebli.
 yml_version="$(awk -F'"' '/MARKETING_VERSION/ {print $2}' "$ROOT/app/project.yml")"
 grep -q "\"$yml_version\"" "$ROOT/app/Core/Sources/LlamaScopeCore/LlamaScopeVersion.swift" \
-    || zle "LlamaScopeVersion.current nie zgadza się z MARKETING_VERSION ($yml_version)"
+    || zle "$(msg wersja_rozjazd "$yml_version")"
 
 ( cd "$ROOT/app" && xcodegen generate >/dev/null )
 ( cd "$ROOT/app" && xcodebuild -scheme "$SCHEME" -configuration Release \
@@ -86,56 +198,56 @@ grep -q "\"$yml_version\"" "$ROOT/app/Core/Sources/LlamaScopeCore/LlamaScopeVers
 APP="$(cd "$ROOT/app" && xcodebuild -scheme "$SCHEME" -configuration Release \
     -showBuildSettings 2>/dev/null \
     | awk '/ BUILT_PRODUCTS_DIR/ {print $3}' | head -1)/$APP_NAME.app"
-[ -d "$APP" ] || zle "nie widzę pakietu: $APP"
-echo "pakiet: $APP"
+[ -d "$APP" ] || zle "$(msg brak_pakietu "$APP")"
+msg pakiet "$APP"; echo
 
 # ---------------------------------------------------------------------
-krok "3/8  Podpis — każdy plik wykonywalny z osobna"
+krok "$(msg krok_podpis)"
 # `--deep` tutaj nie wystarcza i nie o nim mowa: sprawdzamy **każdy**
 # plik wykonywalny w pakiecie po kolei, bo notaryzacja robi dokładnie to
 # samo, a chcemy się dowiedzieć teraz, a nie za dziesięć minut od Apple.
 while IFS= read -r binary; do
     info="$(codesign -dv --verbose=2 "$binary" 2>&1)"
     echo "$info" | grep -q "TeamIdentifier=$TEAM_ID" \
-        || zle "podpis ad-hoc albo cudzy: $binary"
+        || zle "$(msg podpis_obcy "$binary")"
     echo "$info" | grep -q "flags=.*runtime" \
-        || zle "brak hardened runtime: $binary"
+        || zle "$(msg brak_runtime "$binary")"
     # Uprawnienie do podpięcia debuggera. Xcode dokłada je przy `build`,
     # notaryzacja odrzuca zawsze. Sprawdzamy tutaj, bo dowiedzieć się
     # tego od Apple kosztuje pięć minut czekania i komunikat o CloudKicie.
     codesign -d --entitlements - --xml "$binary" 2>/dev/null \
         | grep -q "get-task-allow" \
-        && zle "uprawnienie get-task-allow: $binary"
+        && zle "$(msg task_allow "$binary")"
     # §12: tylko Apple Silicon. Plasterek x86_64 uruchomiłby się na
     # Intelu i pokazał odczyty GPU, które tam nic nie znaczą.
     lipo -archs "$binary" | grep -qx "arm64" \
-        || zle "nie sam arm64: $binary ($(lipo -archs "$binary"))"
+        || zle "$(msg nie_arm64 "$binary" "$(lipo -archs "$binary")")"
     echo "  ok  $(basename "$binary")"
 done < <(find "$APP/Contents/MacOS" -type f -perm +111)
 
-codesign --verify --deep --strict "$APP" || zle "pakiet nie przechodzi weryfikacji"
+codesign --verify --deep --strict "$APP" || zle "$(msg weryfikacja)"
 
 # ---------------------------------------------------------------------
-krok "4/8  Obietnica z §9"
+krok "$(msg krok_obietnica)"
 # Pośrednik jedzie w pakiecie jako osobny program i nie wchodzi do binarki
 # aplikacji. To jest zdanie ze specyfikacji, które ktoś obcy może sprawdzić
 # sam, więc musi być prawdziwe w każdym wydaniu, nie tylko w tym pierwszym.
 count="$(nm "$APP/Contents/MacOS/$APP_NAME" | grep -c ProxyCore || true)"
-[ "$count" = "0" ] || zle "ProxyCore wszedł do binarki aplikacji ($count symboli)"
-echo "  ok  aplikacja nie zawiera kodu pośrednika"
+[ "$count" = "0" ] || zle "$(msg proxy_w_app "$count")"
+msg ok_bez_proxy; echo
 
 # Ikona w pakiecie. Dwie osobne rzeczy, bo każda z nich potrafi zniknąć
 # sama: wpis w Info.plist (zmiana w project.yml bez `xcodegen generate`)
 # i sam plik (kopiowanie zasobów, które cicho się nie wykonało). Pakiet
 # z wpisem bez pliku wygląda w Finderze tak samo jak pakiet bez ikony.
 /usr/libexec/PlistBuddy -c "Print :CFBundleIconFile" "$APP/Contents/Info.plist" \
-    >/dev/null 2>&1 || zle "brak CFBundleIconFile w Info.plist"
+    >/dev/null 2>&1 || zle "$(msg brak_wpisu)"
 [ -s "$APP/Contents/Resources/LlamaScope.icns" ] \
-    || zle "brak pliku ikony w pakiecie"
-echo "  ok  pakiet ma ikonę"
+    || zle "$(msg brak_ikony)"
+msg ok_ikona; echo
 
 # ---------------------------------------------------------------------
-krok "5/8  Obraz .dmg"
+krok "$(msg krok_obraz)"
 VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
     "$APP/Contents/Info.plist")"
 DMG="$OUTPUT/$APP_NAME-$VERSION.dmg"
@@ -185,18 +297,18 @@ icon_ok=yes
 case "$attrs" in *C*) ;; *) icon_ok=no ;; esac
 hdiutil detach "$MOUNT" -quiet
 rmdir "$MOUNT"
-[ "$icon_ok" = "yes" ] || zle "obraz nie ma ikony woluminu (atrybuty: $attrs)"
-echo "  ok  obraz ma ikonę woluminu"
+[ "$icon_ok" = "yes" ] || zle "$(msg brak_wolumenu "$attrs")"
+msg ok_wolumen; echo
 
 if [ "$NOTARIZE" = "no" ]; then
-    krok "Gotowe (bez notaryzacji)."
-    echo "Ten obraz otworzy się tylko na tej maszynie. Do rozdania trzeba"
-    echo "go przepuścić przez notaryzację — uruchom bez --bez-notaryzacji."
+    krok "$(msg gotowe_bez)"
+    msg tylko_tutaj;  echo
+    msg tylko_tutaj2; echo
     exit 0
 fi
 
 # ---------------------------------------------------------------------
-krok "6/8  Notaryzacja (to trwa kilka minut)"
+krok "$(msg krok_notaryzacja)"
 # `notarytool submit --wait` kończy się **zerem także wtedy, gdy status
 # to Invalid** — zero znaczy tu „rozmowa z Apple się udała”, a nie
 # „pakiet przeszedł”. Bez tego sprawdzenia skrypt szedł dalej z pakietem
@@ -207,20 +319,20 @@ out="$(xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait 2>&1)
 echo "$out"
 id="$(echo "$out" | awk '/^ *id:/ {print $2; exit}')"
 echo "$out" | grep -q "status: Accepted" || {
-    printf '\n\033[31mApple odrzuciło pakiet. Powód:\033[0m\n'
+    printf '\n\033[31m%s\033[0m\n' "$(msg apple_odrzucilo)"
     xcrun notarytool log "$id" --keychain-profile "$PROFILE" 2>&1 \
         | grep -E '"(message|path)"' | sort -u
-    zle "notaryzacja nieudana"
+    zle "$(msg notaryzacja_zla)"
 }
 
 # ---------------------------------------------------------------------
-krok "7/8  Przyszycie zaświadczenia"
+krok "$(msg krok_przyszycie)"
 # Bez tego kroku pakiet wymaga internetu przy pierwszym uruchomieniu.
 # Zaświadczenie przyszyte do obrazu działa też bez sieci.
 xcrun stapler staple "$DMG"
 
 # ---------------------------------------------------------------------
-krok "8/8  Sprawdzenie na tym, co wyjdzie z paczki"
+krok "$(msg krok_sprawdzenie)"
 # Najważniejsze sprawdzenie w tym pliku i jedyne, które mówi o cudzym
 # komputerze: montujemy obraz i pytamy Gatekeepera o pakiet w środku.
 # Pakiet zbudowany lokalnie nie ma flagi kwarantanny, więc `spctl` na nim
@@ -232,9 +344,9 @@ verdict="$(spctl --assess --type execute --verbose=2 "$MOUNT/$APP_NAME.app" 2>&1
 hdiutil detach "$MOUNT" -quiet
 rm -rf "$MOUNT"
 echo "$verdict"
-echo "$verdict" | grep -q "accepted" || zle "Gatekeeper odrzuca pakiet z obrazu"
+echo "$verdict" | grep -q "accepted" || zle "$(msg gatekeeper_nie)"
 echo "$verdict" | grep -q "Notarized Developer ID" \
-    || zle "przeszło, ale nie jako notaryzowane — zaświadczenie się nie przyszyło"
+    || zle "$(msg bez_zaswiadczenia)"
 
-krok "Gotowe: $DMG"
-echo "Ten plik można rozdać."
+krok "$(msg gotowe "$DMG")"
+msg do_rozdania; echo

@@ -120,37 +120,8 @@ autostartu i nie zostawia niczego poza tymi dwoma katalogami.
 
 ## In short (English)
 
-**LlamaScope 0.9.1 is signed with a Developer ID and notarized.** Download
-`LlamaScope-0.9.1.dmg` from
-[Releases](https://github.com/MarcinSNowak/llamascope/releases), open it
-and drag the app to `/Applications`. No warnings, nothing to bypass.
+The same document in English, in full: [INSTALL.md](INSTALL.md).
 
-Notarization tells you **who** built this and that nobody altered it on
-the way. It does not tell you **what** it does — and this program reads
-your Ollama server log and, with the proxy on, sees the contents of your
-prompts. Building it yourself is still the only route that asks you to
-trust nothing:
-
-```sh
-git clone https://github.com/MarcinSNowak/llamascope.git
-cd llamascope/app && xcodebuild -scheme LlamaScope -configuration Release build
-```
-
-To check what the system actually knows about the downloaded app:
-
-```sh
-spctl --assess --type execute --verbose=2 /Applications/LlamaScope.app
-```
-
-**Apple Silicon only.** On an Intel Mac the system will refuse to open
-it, and rightly so: the app would show a panel whose GPU readings mean
-nothing there — exactly the kind of calm zero LlamaScope exists to catch.
-The `llamascope.py` script still works on Intel, minus the GPU chart.
-
-It must say `Notarized Developer ID`. A bare `accepted` is not enough —
-a locally built app gets `accepted` before anything is notarized,
-because it carries no quarantine flag.
-
-The interface is in Polish for anyone with Polish among their system
-languages, and in English for everyone else. LlamaScope has **no Dock
-icon** by design — look for it in the menu bar at the top right.
+It is a translation, not a summary — deliberately, because a summary
+next to a full document is the copy that goes out of date first, and
+the reader of the shorter one has no way of telling.
