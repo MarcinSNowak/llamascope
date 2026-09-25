@@ -16,6 +16,7 @@ import SwiftUI
 struct StatusPanel: View {
     @ObservedObject var monitor: Monitor
     @ObservedObject var proxy: ProxyControl
+    @ObservedObject var diagnostics: DiagnosticsStore
 
     /// Rozstrzygnięty raz, przy starcie aplikacji, i podany tutaj wprost.
     /// Widok, który sam pyta system o język, nie da się obejrzeć w drugim
@@ -25,6 +26,8 @@ struct StatusPanel: View {
     /// Potwierdzenie zwolnienia pamięci. §7: pytamy tylko wtedy, gdy GPU nie
     /// jest przy zerze, czyli gdy grozi przerwanie komuś generowania.
     @State private var confirmingRelease = false
+
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -191,8 +194,19 @@ struct StatusPanel: View {
         return false
     }
 
+    /// „Zbierz diagnostykę" (§10) stoi w jednym rzędzie z „Zakończ", a nie
+    /// przy stanach wyżej, i to jest celowe: to nie jest czynność, którą się
+    /// robi, gdy jest źle — to jest czynność, którą się robi, gdy się pisze
+    /// zgłoszenie. Wyżej przeszkadzałaby wszystkim pozostałym razom.
     private var bottomRow: some View {
         HStack {
+            Button(PanelText.collectDiagnostics(in: language)) { collectDiagnostics() }
+                .font(.caption)
+                .buttonStyle(.link)
+                .disabled(diagnostics.collecting)
+
+            Spacer()
+
             if let refresh = monitor.lastRefresh {
                 Text(PanelText.lastRefresh(
                     refresh.formatted(date: .omitted, time: .standard), in: language
@@ -209,6 +223,18 @@ struct StatusPanel: View {
     private var isBusy: Bool {
         if case .working = monitor.state { return true }
         return false
+    }
+
+    /// Okno otwieramy **od razu**, a treść dochodzi do niego chwilę później.
+    /// Odwrotna kolejność — poczekać na zebranie, potem pokazać — daje
+    /// kliknięcie bez żadnej odpowiedzi przez dwie sekundy odpytywania
+    /// serwera, czyli przycisk, który wygląda na zepsuty.
+    private func collectDiagnostics() {
+        // Aplikacja nie ma ikony w Docku (LSUIElement), więc nowe okno samo
+        // z siebie nie wychodzi na wierzch ani nie dostaje klawiatury.
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        openWindow(id: DiagnosticsWindow.id)
+        Task { await diagnostics.collect() }
     }
 
     private func release(_ name: String) {

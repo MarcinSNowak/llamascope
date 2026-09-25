@@ -11,6 +11,27 @@ public enum OllamaStatus: Sendable, Equatable {
     case notResponding(reason: String)
 }
 
+/// Wersja serwera Ollamy — do paczki diagnostycznej (§10).
+///
+/// Znowu dwa przypadki zamiast `String?`, i z tego samego powodu co przy
+/// odczycie GPU: puste pole „wersja Ollamy" w zgłoszeniu czyta się jako
+/// „nie sprawdzono", a my chcemy wiedzieć, czy serwer nie odpowiedział,
+/// czy odpowiedział czymś, czego nie rozumiemy. Format logu Ollamy zmienia
+/// się między wydaniami i ta jedna linia rozstrzyga połowę zgłoszeń
+/// o nierozpoznanych liniach.
+public enum OllamaVersion: Sendable, Equatable {
+    case known(String)
+    case unavailable(reason: String)
+
+    /// Zawsze po polsku — to jest treść do logu i do zgłoszenia.
+    public var logLine: String {
+        switch self {
+        case let .known(value): return "wersja Ollamy: \(value)"
+        case let .unavailable(reason): return "wersja Ollamy: NIEZNANA — \(reason)"
+        }
+    }
+}
+
 /// Klient `/api/ps`. Jedno wywołanie, bez stanu, bez zależności.
 ///
 /// Adres bierzemy z `OLLAMA_HOST`, bo kto przestawił port serwera, ten
@@ -87,6 +108,30 @@ public struct OllamaClient: Sendable {
             return .notResponding(reason: (error as NSError).localizedDescription)
         }
     }
+
+    /// `/api/version`. Wywoływane **tylko** przy składaniu paczki
+    /// diagnostycznej, a nie w pętli odświeżania — wersja serwera nie zmienia
+    /// się co sekundę, a każde dodatkowe żądanie w pętli to kolejna rzecz,
+    /// która może się zaciąć i zamrozić odczyt.
+    public func version() async -> OllamaVersion {
+        do {
+            let data = try await fetch(baseURL.appendingPathComponent("api/version"))
+            return .known(try JSONDecoder().decode(VersionResponse.self, from: data).version)
+        } catch let error as OllamaError {
+            if case let .badStatus(code) = error {
+                // Wersje Ollamy sprzed `/api/version` odpowiadają tu 404.
+                // To nie jest awaria serwera i nie może tak wyglądać.
+                return .unavailable(reason: "serwer odpowiedział kodem \(code)")
+            }
+            return .unavailable(reason: "\(error)")
+        } catch is DecodingError {
+            return .unavailable(reason: "odpowiedź w nieznanym kształcie")
+        } catch {
+            return .unavailable(reason: (error as NSError).localizedDescription)
+        }
+    }
+
+    private struct VersionResponse: Decodable { let version: String }
 
     /// Jak poszła akcja pisząca. Nie `Bool` i nie milczenie: użytkownik
     /// nacisnął przycisk i ma prawo wiedzieć, czy stało się to, o co prosił.

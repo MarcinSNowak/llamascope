@@ -157,7 +157,10 @@ public final class Monitor: ObservableObject {
             // Najcenniejsza rzecz w tym logu (§10): linia, która wygląda na
             // naszą, a której nie rozumiemy. Po zmianie formatu w Ollamie to
             // ona powie, co się stało — zanim ktoś zgłosi „nic nie pokazuje”.
-            sources.record("NIEROZPOZNANA LINIA LOGU OLLAMY: \(line)")
+            // Przedrostek ze stałej, bo paczka diagnostyczna szuka tych linii
+            // po nim. Napis wpisany tu wprost dałby się zmienić bez tamtej
+            // zmiany, a skutkiem byłaby pusta sekcja w zgłoszeniu.
+            sources.record("\(AppLogArchive.unrecognizedPrefix) \(line)")
         }
 
         let anythingLoaded: Bool

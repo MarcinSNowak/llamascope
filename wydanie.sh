@@ -71,6 +71,14 @@ before="$(shasum -a 256 "$icns" | cut -d' ' -f1)"
 [ "$before" = "$(shasum -a 256 "$icns" | cut -d' ' -f1)" ] \
     || zle "ikona w repozytorium nie zgadza się ze skryptem — zatwierdź nową"
 
+# Sonda z wiersza poleceń nie ma Info.plist, więc numer wydania trzyma
+# w kodzie. Rozjazd z `project.yml` nie wywalałby niczego — dałby paczkę
+# diagnostyczną (§10) z nieprawdziwą wersją w pierwszym wierszu, czyli
+# liczbę wyglądającą na odczytaną, a wziętą sprzed trzech szczebli.
+yml_version="$(awk -F'"' '/MARKETING_VERSION/ {print $2}' "$ROOT/app/project.yml")"
+grep -q "\"$yml_version\"" "$ROOT/app/Core/Sources/LlamaScopeCore/LlamaScopeVersion.swift" \
+    || zle "LlamaScopeVersion.current nie zgadza się z MARKETING_VERSION ($yml_version)"
+
 ( cd "$ROOT/app" && xcodegen generate >/dev/null )
 ( cd "$ROOT/app" && xcodebuild -scheme "$SCHEME" -configuration Release \
     clean build 2>&1 | grep -E "error:|BUILD" )

@@ -15,7 +15,9 @@ import LlamaScopeText
 // w buforze i plik jest pusty dokładnie wtedy, gdy się do niego zagląda.
 setvbuf(stdout, nil, _IOLBF, 0)
 
-let appVersion = "0.5-rozwojowa"
+// Z jednego miejsca, sprawdzanego przy wydaniu. Wpisany tu wprost numer
+// przeżył trzy szczeble i kłamał w każdym wydruku sondy.
+let appVersion = "\(LlamaScopeVersion.current) (sonda)"
 // Ten sam wybór co w aplikacji i z tego samego miejsca: polski dla tego,
 // kto ma polski w systemie, angielski dla wszystkich pozostałych.
 let language = Language.preferred()
@@ -65,6 +67,19 @@ let monitor = Monitor(sources: .live(logPath: logPath, record: { line in
     FileHandle.standardError.write(Data("log: \(line)\n".utf8))
 }))
 let follow = CommandLine.arguments.contains("--sledz")
+
+// Paczka diagnostyczna (§10) wypisana na wyjście, bez zapisywania pliku
+// i bez otwierania czegokolwiek. Ten sam tekst, który składa aplikacja —
+// więc dający się sprawdzić na żywej maszynie, zanim ktokolwiek kliknie
+// przycisk w pasku menu. I ten sam powód, dla którego sonda w ogóle jest:
+// przy zgłoszeniu z cudzego Maca da się o to poprosić jednym poleceniem.
+if CommandLine.arguments.contains("--diagnostyka") {
+    let collector = DiagnosticsCollector(
+        sources: .live(appVersion: appVersion, logPath: logPath)
+    )
+    print(DiagnosticsReport.text(await collector.collect(state: await monitor.refresh())))
+    exit(0)
+}
 
 print("")
 print(StateText.detectionLimit(in: language))

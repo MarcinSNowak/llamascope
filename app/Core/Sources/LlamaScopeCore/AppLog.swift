@@ -30,7 +30,9 @@ public final class AppLog: @unchecked Sendable {
     /// dałyby log, w którym nie da się dojść, kto co zrobił.
     public let name: String
     private let maxBytes: Int
-    private let keep: Int
+    /// Liczba plików razem z bieżącym. Jawna, bo paczka diagnostyczna (§10)
+    /// czyta log z powrotem i musi wiedzieć, ile plików w ogóle istnieje.
+    public let keep: Int
     private let fileManager: FileManager
     private let clock: @Sendable () -> Date
     private let lock = NSLock()
@@ -108,7 +110,12 @@ public final class AppLog: @unchecked Sendable {
 
     /// Czas lokalny, sekundowo. Bez ułamków — to jest log do czytania
     /// ludzkim okiem w zgłoszeniu, nie ślad do korelacji maszynowej.
-    private static let stamp: DateFormatter = {
+    ///
+    /// Nie `private`, bo ten sam format służy do czytania logu z powrotem
+    /// (`AppLogArchive`). Drugi opis tego samego znacznika czasu rozjechałby
+    /// się z pierwszym przy pierwszej zmianie i paczka diagnostyczna po cichu
+    /// przestałaby znajdować „ostatnią godzinę".
+    static let stamp: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
         return formatter

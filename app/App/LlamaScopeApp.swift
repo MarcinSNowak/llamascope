@@ -13,6 +13,7 @@ import SwiftUI
 struct LlamaScopeApp: App {
     @StateObject private var monitor: Monitor
     @StateObject private var proxy: ProxyControl
+    @StateObject private var diagnostics: DiagnosticsStore
 
     /// Język rozstrzygnięty **raz**, tutaj, i dalej podawany wprost.
     /// Polski dostaje ten, kto ma polski wśród języków systemu; każdy inny
@@ -45,6 +46,18 @@ struct LlamaScopeApp: App {
         monitor.start()
         _monitor = StateObject(wrappedValue: monitor)
         _proxy = StateObject(wrappedValue: ProxyControl(language: language))
+
+        // Ta sama ścieżka logu Ollamy, co dla pętli odświeżania. Policzona
+        // drugi raz mogłaby wskazać inny plik, gdyby ktoś w międzyczasie
+        // zainstalował Ollamę inaczej — a paczka diagnostyczna twierdziłaby
+        // wtedy coś innego, niż aplikacja pokazuje.
+        _diagnostics = StateObject(wrappedValue: DiagnosticsStore(
+            language: language,
+            collector: DiagnosticsCollector(
+                sources: .live(appVersion: Self.version, logPath: logPath)
+            ),
+            currentState: { monitor.state }
+        ))
     }
 
     /// Znak zapytania zamiast pustego miejsca: wersja, której nie umiemy
@@ -58,12 +71,23 @@ struct LlamaScopeApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            StatusPanel(monitor: monitor, proxy: proxy, language: language)
+            StatusPanel(
+                monitor: monitor, proxy: proxy, diagnostics: diagnostics, language: language
+            )
         } label: {
             MenuBarIcon(state: monitor.state, history: monitor.history)
         }
         // Okno, nie menu: panel z §7 ma słupki, wiersze liczb i przyciski,
         // a pozycja menu potrafi być tylko wierszem tekstu.
         .menuBarExtraStyle(.window)
+
+        // Paczka diagnostyczna (§10). `Window`, a nie `WindowGroup`: drugie
+        // kliknięcie ma wrócić do tego samego okna, a nie otworzyć drugie
+        // z inną zawartością — dwie paczki z dwóch chwil obok siebie to
+        // pewne pomylenie ich w zgłoszeniu.
+        Window(PanelText.diagnosticsTitle(in: language), id: DiagnosticsWindow.id) {
+            DiagnosticsWindow(store: diagnostics, language: language)
+        }
+        .defaultSize(width: 640, height: 640)
     }
 }

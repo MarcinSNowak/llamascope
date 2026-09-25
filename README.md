@@ -260,17 +260,49 @@ a panel mówi o tym wprost w chwili włączenia.
 Kod jest otwarty po to, żeby dało się to sprawdzić samemu, a nie brać na
 słowo.
 
+## Zgłaszanie problemów
+
+Na dole panelu jest **„Zbierz diagnostykę"**. Składa jeden plik tekstowy
+i **pokazuje go w oknie, zanim cokolwiek się z nim stanie** — wersje,
+migawkę tego, co trzyma Ollama, ostatnią godzinę z własnego logu, linie
+logu Ollamy, których program nie zrozumiał, i fragment jej logu.
+Dopiero Ty decydujesz, czy zapisać go na pulpicie, skopiować, czy otworzyć
+z niego wypełnione zgłoszenie.
+
+Dwie rzeczy, które warto wiedzieć, zanim klikniesz:
+
+- **Ścieżki są anonimizowane** — `/Users/twoje-konto/` zamienia się na
+  `/Users/<użytkownik>/`.
+- **Fragment logu Ollamy powstaje z listy rzeczy dozwolonych**, a nie
+  zakazanych: do pliku trafiają wyłącznie linie o znanym kształcie,
+  a wszystkie pozostałe są **policzone, nie zacytowane**. Tak właśnie ten
+  plik nie zawiera treści promptów — także wtedy, gdy masz włączone
+  `OLLAMA_DEBUG=1`. Pisze o tym sam plik, w miejscu, w którym to widać.
+
+W zgłoszeniu na GitHubie idą **same wersje i stan**; plik dołączasz sam
+albo wcale, bo zgłoszenia są publiczne. Bez konta na GitHubie zostaje
+poczta — adres jest w oknie.
+
+To samo bez uruchamiania aplikacji, jednym poleceniem:
+
+```bash
+cd llamascope/app/Core
+swift run LlamaScopeProbe --diagnostyka
+```
+
 ## Stan projektu
 
 Wczesny i szczery. Skrypt jest działającym narzędziem, którego używamy
-codziennie. Aplikacja natywna jest na szczeblu **0.9**: ma sześć stanów,
+codziennie. Aplikacja natywna ma **zamknięty szczebel 0.9**: sześć stanów,
 „Zwolnij teraz", własny log, pośrednika, wprost napisaną granicę
-wykrywania, interfejs po polsku i po angielsku — oraz podpis Developer ID
-i notaryzację, więc instaluje się ją bez obchodzenia czegokolwiek.
+wykrywania, interfejs po polsku i po angielsku, paczkę diagnostyczną —
+oraz podpis Developer ID i notaryzację, więc instaluje się ją bez
+obchodzenia czegokolwiek.
 
 Czego wciąż nie ma: automatycznych aktualizacji i caska w Homebrew.
-Dalej: 1.0 to strona z opisem i Homebrew. Uwagi i zgłoszenia: przez
-*Issues*.
+Dalej: 1.0 to odcinek serii i Homebrew — [strona z opisem
+narzędzi](https://www.qshmobile.com/narzedzia/) już stoi. Uwagi
+i zgłoszenia: przez *Issues*.
 
 ## Skąd to się wzięło
 
@@ -319,6 +351,17 @@ Without it, LlamaScope never sees your prompts, because that data is not
 present in any of the sources it reads. With it, it does see them, and
 records only numbers and labels — never text, and only on your disk.
 Nothing ever leaves your machine either way.
+
+**Reporting a problem:** the panel has a *Collect diagnostics* button.
+It builds a single text file and **shows it to you before anything else
+happens** — you decide whether to save it, copy it, or open a pre-filled
+GitHub issue from it. Home paths are anonymised, and the excerpt from
+Ollama's own log is built from an **allowlist**: only lines of a known
+shape are quoted, every other line is counted rather than reproduced.
+That is how the file contains no prompt text, even with `OLLAMA_DEBUG=1`.
+The report body itself is in Polish — it is made of lines the application
+wrote to its log. Same file without launching the app:
+`swift run LlamaScopeProbe --diagnostyka` in `app/Core`.
 
 ---
 

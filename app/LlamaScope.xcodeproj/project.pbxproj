@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		02ECF8BC470F0D34B0EFB7B6 /* LlamaScope.icns in Resources */ = {isa = PBXBuildFile; fileRef = 54CA65BCFC060032AFD05765 /* LlamaScope.icns */; };
+		081D873889B59C021A38B27D /* DiagnosticsWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2F1A3C4595EE9A54FBA489D /* DiagnosticsWindow.swift */; };
 		1121A50A38FB30439773FD6F /* Connection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B63CD36F957AD9CFDD98221 /* Connection.swift */; };
 		127BF52092B420E4ABFA0F75 /* Proxy.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4D66155C55A960492F1081C /* Proxy.swift */; };
 		1DC761E0172D07AA5A7786D4 /* LlamaScopeCore in Frameworks */ = {isa = PBXBuildFile; productRef = C7C6C267E490B5DB3CAC6FCA /* LlamaScopeCore */; };
@@ -15,6 +16,7 @@
 		3002176EFBDDDE1237D110D5 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8842C92D0964397D727C86BA /* main.swift */; };
 		435D9A12EF53A3543D78E3E6 /* Upstream.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4879E9B9941E0E6CCC3CC24A /* Upstream.swift */; };
 		645482791464902F8CD670F0 /* ProxyControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A042CC402302EFB6AFBC1E4 /* ProxyControl.swift */; };
+		699CAE85BDA14C5FD88FA767 /* DiagnosticsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1906C78000E1D5B60D7FED27 /* DiagnosticsStore.swift */; };
 		77DC1B89C507E87338404C5D /* LlamaScopeCore in Frameworks */ = {isa = PBXBuildFile; productRef = BC3258EF5F1FF3E8BD58C0E6 /* LlamaScopeCore */; };
 		8E007E07B49DF720B2F3CE73 /* LlamaScopeText in Frameworks */ = {isa = PBXBuildFile; productRef = 9DECD14476CE692FC290502B /* LlamaScopeText */; };
 		95E8583740D85826C5B8DB74 /* StatusPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D10D17ED7EECEDDEFA7AD7 /* StatusPanel.swift */; };
@@ -49,6 +51,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1906C78000E1D5B60D7FED27 /* DiagnosticsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsStore.swift; sourceTree = "<group>"; };
 		3B9ED8BBA43F7BC199D0134F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4879E9B9941E0E6CCC3CC24A /* Upstream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Upstream.swift; sourceTree = "<group>"; };
 		4FD0D38CB7879BB3AB180C70 /* ObservationLog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ObservationLog.swift; sourceTree = "<group>"; };
@@ -62,6 +65,7 @@
 		BF8EEAC002921CCD514FFC7C /* Core */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Core; path = Core; sourceTree = SOURCE_ROOT; };
 		C15C3800A5EAC01C36B0368E /* LlamaScopeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LlamaScopeApp.swift; sourceTree = "<group>"; };
 		D7D9CB960957BBADF41F087F /* MenuBarIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIcon.swift; sourceTree = "<group>"; };
+		F2F1A3C4595EE9A54FBA489D /* DiagnosticsWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsWindow.swift; sourceTree = "<group>"; };
 		F4D66155C55A960492F1081C /* Proxy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Proxy.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -90,6 +94,8 @@
 		0FB7CFB25F817081AECC2601 /* App */ = {
 			isa = PBXGroup;
 			children = (
+				1906C78000E1D5B60D7FED27 /* DiagnosticsStore.swift */,
+				F2F1A3C4595EE9A54FBA489D /* DiagnosticsWindow.swift */,
 				3B9ED8BBA43F7BC199D0134F /* Info.plist */,
 				C15C3800A5EAC01C36B0368E /* LlamaScopeApp.swift */,
 				D7D9CB960957BBADF41F087F /* MenuBarIcon.swift */,
@@ -279,6 +285,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				699CAE85BDA14C5FD88FA767 /* DiagnosticsStore.swift in Sources */,
+				081D873889B59C021A38B27D /* DiagnosticsWindow.swift in Sources */,
 				BBF8EE1050DAF15A9C0D996A /* LlamaScopeApp.swift in Sources */,
 				EF2237A84488B6BA29261D49 /* MenuBarIcon.swift in Sources */,
 				645482791464902F8CD670F0 /* ProxyControl.swift in Sources */,
