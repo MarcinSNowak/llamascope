@@ -131,18 +131,54 @@ krok "5/8  Obraz .dmg"
 VERSION="$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" \
     "$APP/Contents/Info.plist")"
 DMG="$OUTPUT/$APP_NAME-$VERSION.dmg"
-rm -rf "$STAGING" "$DMG"
+RW="$OUTPUT/$APP_NAME-$VERSION-rw.dmg"
+MOUNT="$OUTPUT/mnt"
+rm -rf "$STAGING" "$DMG" "$RW" "$MOUNT"
 mkdir -p "$STAGING"
 cp -R "$APP" "$STAGING/"
 ln -s /Applications "$STAGING/Applications"
+
+# Obraz powstaje w dwóch krokach, a nie w jednym, i to nie jest komplikacja
+# dla ozdoby. Ikona woluminu — ta, którą widać po zamontowaniu — wymaga
+# **flagi** własnej ikony na katalogu głównym woluminu, a nie tylko pliku
+# `.VolumeIcon.icns`. Flaga postawiona na katalogu montażowym nie przechodzi
+# przez `hdiutil create -srcfolder`: plik ląduje w obrazie, flagi nie ma,
+# a Finder pokazuje zwykły szary dysk. Sprawdzone, nie wywnioskowane.
+# Więc: obraz zapisywalny, zamontować, postawić flagę, odmontować, dopiero
+# potem skompresować do postaci do rozdania.
 hdiutil create -volname "$APP_NAME $VERSION" -srcfolder "$STAGING" \
-    -ov -format UDZO "$DMG" >/dev/null
+    -ov -format UDRW "$RW" >/dev/null 2>&1
 rm -rf "$STAGING"
+
+mkdir -p "$MOUNT"
+hdiutil attach "$RW" -nobrowse -quiet -mountpoint "$MOUNT"
+cp "$ROOT/app/App/Resources/LlamaScope.icns" "$MOUNT/.VolumeIcon.icns"
+xcrun SetFile -c icnC "$MOUNT/.VolumeIcon.icns"
+xcrun SetFile -a C "$MOUNT"
+hdiutil detach "$MOUNT" -quiet
+rmdir "$MOUNT"
+
+hdiutil convert "$RW" -format UDZO -o "$DMG" >/dev/null 2>&1
+rm -f "$RW"
 echo "  $DMG"
 
 # Obraz też się podpisuje. Bez tego kwarantanna zostaje na nim samym
 # i pierwsze kliknięcie wygląda na awarię.
 codesign --sign "Developer ID Application" --timestamp "$DMG"
+
+# Ikona woluminu sprawdzona na gotowym obrazie, a nie na katalogu, z którego
+# powstał. Flaga ginie po drodze cicho — tak właśnie zginęła za pierwszym
+# razem — a obraz bez niej wygląda w Finderze dokładnie jak każdy inny.
+mkdir -p "$MOUNT"
+hdiutil attach "$DMG" -nobrowse -quiet -readonly -mountpoint "$MOUNT"
+attrs="$(xcrun GetFileInfo -a "$MOUNT")"
+icon_ok=yes
+[ -s "$MOUNT/.VolumeIcon.icns" ] || icon_ok=no
+case "$attrs" in *C*) ;; *) icon_ok=no ;; esac
+hdiutil detach "$MOUNT" -quiet
+rmdir "$MOUNT"
+[ "$icon_ok" = "yes" ] || zle "obraz nie ma ikony woluminu (atrybuty: $attrs)"
+echo "  ok  obraz ma ikonę woluminu"
 
 if [ "$NOTARIZE" = "no" ]; then
     krok "Gotowe (bez notaryzacji)."
