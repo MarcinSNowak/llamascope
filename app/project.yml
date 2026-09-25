@@ -58,13 +58,13 @@ targets:
         # dokładnie w chwili, w której ktoś decyduje, czy nam ufa.
         # Plik powstaje ze skryptu `ikona.swift` w korzeniu repozytorium.
         CFBundleIconFile: LlamaScope
-        CFBundleShortVersionString: "0.9"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "0.9.1"
+        CFBundleVersion: "3"
         NSHumanReadableCopyright: "LlamaScope — MIT"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.qshmobile.LlamaScope
-        MARKETING_VERSION: "0.9"
+        MARKETING_VERSION: "0.9.1"
         SWIFT_VERSION: "5.0"
         # Szczebel 0.9 z §14: podpis Developer ID i notaryzacja. Tożsamość
         # wpisana wprost, a nie zostawiona automatowi — automat wybiera to,

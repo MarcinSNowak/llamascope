@@ -1,4 +1,4 @@
-# Instalacja LlamaScope 0.9 na macOS
+# Instalacja LlamaScope 0.9.1 na macOS
 
 Ta wersja jest **podpisana Developer ID i notaryzowana**. Pobrany obraz
 otwiera się podwójnym kliknięciem, bez ostrzeżeń i bez obchodzenia
@@ -44,7 +44,7 @@ nm LlamaScope.app/Contents/MacOS/LlamaScopeProxy | grep -c ProxyCore
 
 ## Droga B: gotowy `.dmg`
 
-Pobierz `LlamaScope-0.9.dmg` z
+Pobierz `LlamaScope-0.9.1.dmg` z
 [wydań](https://github.com/MarcinSNowak/llamascope/releases), otwórz
 i przeciągnij aplikację do `/Applications`. To wszystko.
 
@@ -120,8 +120,8 @@ autostartu i nie zostawia niczego poza tymi dwoma katalogami.
 
 ## In short (English)
 
-**LlamaScope 0.9 is signed with a Developer ID and notarized.** Download
-`LlamaScope-0.9.dmg` from
+**LlamaScope 0.9.1 is signed with a Developer ID and notarized.** Download
+`LlamaScope-0.9.1.dmg` from
 [Releases](https://github.com/MarcinSNowak/llamascope/releases), open it
 and drag the app to `/Applications`. No warnings, nothing to bypass.
 

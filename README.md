@@ -42,7 +42,7 @@ W tym repozytorium są **dwa programy**, robiące to samo na dwa sposoby:
 |---|---|---|
 | plik | `llamascope.py` | katalog [`app/`](app/) |
 | gdzie mieszka | terminal albo [SwiftBar](https://swiftbar.app) | własna ikona w pasku menu |
-| stan | używany codziennie od 2026-09-06 | **0.9, podpisana i notaryzowana** — [INSTALACJA.md](INSTALACJA.md) |
+| stan | używany codziennie od 2026-09-06 | **0.9.1, podpisana i notaryzowana** — [INSTALACJA.md](INSTALACJA.md) |
 | pośrednik (niżej) | nie ma | jest, domyślnie wyłączony |
 
 Skrypt nie jest etapem przejściowym do skasowania — jest wersją bez
@@ -297,7 +297,7 @@ dependencies, no `sudo` — just `python3 llamascope.py`; it also runs as a
 [SwiftBar](https://swiftbar.app) plugin, exact commands in the Polish
 section above), and a native menu-bar app in [`app/`](app/), built with
 `xcodebuild -scheme LlamaScope -configuration Release build`. **The app
-is version 0.9, signed with a Developer ID and notarized** — a ready
+is version 0.9.1, signed with a Developer ID and notarized** — a ready
 `.dmg` is in
 [Releases](https://github.com/MarcinSNowak/llamascope/releases), and
 [INSTALACJA.md](INSTALACJA.md) ends with an English summary. Its
