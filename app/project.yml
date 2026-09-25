@@ -72,6 +72,18 @@ targets:
         # czasu i bez podpisu na **każdym** pliku wykonywalnym w środku.
         ENABLE_HARDENED_RUNTIME: "YES"
         OTHER_CODE_SIGN_FLAGS: "--timestamp"
+        # Xcode dokłada przy `build` uprawnienie `get-task-allow`, czyli
+        # zgodę na podpięcie debuggera do działającego procesu — także
+        # w Release. Notaryzacja odrzuca je zawsze i ma rację: to jest
+        # pozwolenie, żeby cudzy proces wszedł do środka programu, który
+        # widzi treść promptów.
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS: "NO"
+        # Tylko Apple Silicon (§12). Wersja x86_64 nie jest tu grzecznością
+        # wobec Intela, tylko pułapką: uruchomiłaby się i pokazała panel,
+        # w którym odczyty GPU nie znaczą nic — czyli spokojne zero
+        # w najbardziej widocznym miejscu. Lepiej, żeby system powiedział
+        # wprost, że nie da się tego otworzyć.
+        ARCHS: arm64
 
   # Pośrednik z §12 jako osobny program w pakiecie. Źródła te same, co
   # bierze SwiftPM — jeden kod, dwa sposoby zbudowania: `swift run` dla
@@ -99,6 +111,8 @@ targets:
         CODE_SIGN_IDENTITY: "Developer ID Application"
         ENABLE_HARDENED_RUNTIME: "YES"
         OTHER_CODE_SIGN_FLAGS: "--timestamp"
+        CODE_SIGN_INJECT_BASE_ENTITLEMENTS: "NO"
+        ARCHS: arm64
 
 # Schemat wpisany wprost, a nie zostawiony Xcode do dorobienia u siebie.
 # Bez tego `xcodebuild -scheme LlamaScope` działa na tej maszynie i nie

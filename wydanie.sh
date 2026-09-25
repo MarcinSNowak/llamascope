@@ -80,6 +80,16 @@ while IFS= read -r binary; do
         || zle "podpis ad-hoc albo cudzy: $binary"
     echo "$info" | grep -q "flags=.*runtime" \
         || zle "brak hardened runtime: $binary"
+    # Uprawnienie do podpięcia debuggera. Xcode dokłada je przy `build`,
+    # notaryzacja odrzuca zawsze. Sprawdzamy tutaj, bo dowiedzieć się
+    # tego od Apple kosztuje pięć minut czekania i komunikat o CloudKicie.
+    codesign -d --entitlements - --xml "$binary" 2>/dev/null \
+        | grep -q "get-task-allow" \
+        && zle "uprawnienie get-task-allow: $binary"
+    # §12: tylko Apple Silicon. Plasterek x86_64 uruchomiłby się na
+    # Intelu i pokazał odczyty GPU, które tam nic nie znaczą.
+    lipo -archs "$binary" | grep -qx "arm64" \
+        || zle "nie sam arm64: $binary ($(lipo -archs "$binary"))"
     echo "  ok  $(basename "$binary")"
 done < <(find "$APP/Contents/MacOS" -type f -perm +111)
 
@@ -121,8 +131,21 @@ fi
 
 # ---------------------------------------------------------------------
 krok "6/8  Notaryzacja (to trwa kilka minut)"
-xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait \
-    || zle "notaryzacja odrzucona — szczegóły: xcrun notarytool log <id> --keychain-profile $PROFILE"
+# `notarytool submit --wait` kończy się **zerem także wtedy, gdy status
+# to Invalid** — zero znaczy tu „rozmowa z Apple się udała”, a nie
+# „pakiet przeszedł”. Bez tego sprawdzenia skrypt szedł dalej z pakietem
+# odrzuconym i przewracał się dopiero na przyszywaniu, z komunikatem
+# o CloudKicie, który nie mówi nic o przyczynie. Trzecia taka pułapka
+# w tym pliku, wszystkie tej samej rodziny co `truncated = 0`.
+out="$(xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait 2>&1)"
+echo "$out"
+id="$(echo "$out" | awk '/^ *id:/ {print $2; exit}')"
+echo "$out" | grep -q "status: Accepted" || {
+    printf '\n\033[31mApple odrzuciło pakiet. Powód:\033[0m\n'
+    xcrun notarytool log "$id" --keychain-profile "$PROFILE" 2>&1 \
+        | grep -E '"(message|path)"' | sort -u
+    zle "notaryzacja nieudana"
+}
 
 # ---------------------------------------------------------------------
 krok "7/8  Przyszycie zaświadczenia"
