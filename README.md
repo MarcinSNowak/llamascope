@@ -61,6 +61,27 @@ sobie ze zbyt długim wejściem na **dwa różne sposoby**:
 | linia `WARN` w logu | **jest** | **nie ma** |
 | widać z samego logu | **tak** | **nie** |
 
+Wiersz „co przeżywa" przy drugiej kolumnie był do 2026-10-16 **przepisany
+z dokumentacji, nie zmierzony**. Teraz jest zmierzony — rozmowa 80 tur przy
+oknie 512 tokenów, hasło ukryte wyłącznie w instrukcji systemowej:
+
+| pytanie | `phi4` | `qwen2.5-coder:14b` |
+|---|---|---|
+| hasło z instrukcji systemowej | **5/5 dokładnie** | 0/5 — ale „NIEBIESKI-SZPAK-**42**" zamiast „-47" |
+| ostatni fakt (nr 79) | **5/5** | **5/5** |
+| pierwszy fakt (nr 0) | 0/5 — oba modele mówią „68" | 0/5 |
+
+Kontrola najpierw, bo bez niej ten pomiar nic nie znaczy: przy oknie, w którym
+nic nie jest ucinane, oba modele podają hasło 5/5. `llama3.2` odpada jako
+przyrząd — ignoruje instrukcję systemową 5/5 nawet bez ucięcia.
+
+Pomyłka `qwen2.5-coder:14b` jest tu **mocniejszym dowodem niż trafienie**:
+model, który nie widziałby instrukcji systemowej, nie miałby skąd wziąć słowa
+„SZPAK". Widzi ją i przekręca cyfry — czyli instrukcja **jest w prompcie**,
+a to, czy model ją poprawnie odtworzy, to już jego sprawa i spada przy ciasnym
+oknie. Rozróżnienie jest praktyczne: LlamaScope mówi, co serwer **wysłał do
+modelu**, a nie co model z tym zrobił.
+
 Innymi słowy: **z loga widać ucięcie tylko wtedy, gdy sama najnowsza
 wiadomość nie mieści się w oknie.** Jeśli rozmowa w kliencie czatu
 rośnie i serwer po cichu wyrzuca stare tury, w logu nie ma o tym ani
