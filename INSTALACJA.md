@@ -15,7 +15,8 @@ go po drodze nie podmienił. Nie potwierdza, **co** ten plik robi —
 a LlamaScope czyta log serwera Ollamy, a po włączeniu pośrednika widzi
 treść Twoich promptów (co z nich zapisuje, opisuje
 [README](README.md), sekcja *Prywatność*). Droga A niżej nadal jest
-jedyną, która nie wymaga wierzenia nam na słowo.
+jedyną, która nie wymaga wierzenia nam na słowo — Homebrew sprawdza, czy
+plik jest tym, co opublikowaliśmy, a nie co ten plik robi.
 
 ---
 
@@ -42,7 +43,28 @@ nm LlamaScope.app/Contents/MacOS/LlamaScope | grep -c ProxyCore   # ma dać 0
 nm LlamaScope.app/Contents/MacOS/LlamaScopeProxy | grep -c ProxyCore
 ```
 
-## Droga B: gotowy `.dmg`
+## Droga B: Homebrew
+
+```sh
+brew tap MarcinSNowak/tap
+brew install --cask llamascope
+```
+
+Instaluje **dokładnie ten sam** podpisany i notaryzowany `.dmg`, co droga
+C niżej — tyle że Homebrew sam sprawdza sumę SHA-256 i zatrzyma się, gdy
+plik po drodze się zmieni. Odinstalowanie: `brew uninstall --cask llamascope`,
+a razem z plikami ustawień — `brew zap --cask llamascope`.
+
+To **własny tap**, nie oficjalne repozytorium Homebrew. Oficjalne wymaga od
+nowego pakietu dowodu, że ktoś poza autorem go używa — przy zgłoszeniu przez
+właściciela repozytorium 90 forków, 90 obserwujących albo 225 gwiazdek.
+LlamaScope ich nie ma, więc zgłoszenie zostałoby odrzucone i tak ma być:
+te progi istnieją po to, żeby oficjalne repozytorium nie zamieniło się
+w składowisko. Dla Ciebie różnica to jedna linijka `brew tap` więcej.
+
+---
+
+## Droga C: gotowy `.dmg`
 
 Pobierz `LlamaScope-0.9.1.dmg` z
 [wydań](https://github.com/MarcinSNowak/llamascope/releases), otwórz
@@ -111,6 +133,12 @@ program coś u siebie zapisał — oba możesz skasować ręcznie:
 ```sh
 rm -rf ~/Library/Logs/LlamaScope                 # log aplikacji, log i obserwacje pośrednika
 rm -rf ~/Library/Application\ Support/LlamaScope # punkt odniesienia zużycia swapu
+```
+
+Jeśli instalowałeś przez Homebrew, robi to za Ciebie jedno polecenie:
+
+```sh
+brew zap --cask llamascope
 ```
 
 To wszystko. LlamaScope nie instaluje usług w tle, nie dopisuje się do

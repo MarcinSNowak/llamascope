@@ -42,7 +42,28 @@ nm LlamaScope.app/Contents/MacOS/LlamaScope | grep -c ProxyCore   # should print
 nm LlamaScope.app/Contents/MacOS/LlamaScopeProxy | grep -c ProxyCore
 ```
 
-## Route B: the ready-made `.dmg`
+## Route B: Homebrew
+
+```sh
+brew tap MarcinSNowak/tap
+brew install --cask llamascope
+```
+
+This installs **the very same** signed and notarized `.dmg` as route C below,
+except Homebrew checks the SHA-256 itself and stops if the file changed on the
+way. To remove it: `brew uninstall --cask llamascope`, or `brew zap --cask
+llamascope` to take the settings files with it.
+
+This is **our own tap**, not the official Homebrew repository. The official one
+asks a new package to show that somebody other than its author uses it — 90
+forks, 90 watchers or 225 stars when the repository owner submits it. LlamaScope
+has none of those, so a submission would be turned down, and rightly so: those
+thresholds are what keeps the official repository from turning into a dumping
+ground. For you the difference is one extra `brew tap` line.
+
+---
+
+## Route C: the ready-made `.dmg`
 
 Download `LlamaScope-0.9.1.dmg` from
 [Releases](https://github.com/MarcinSNowak/llamascope/releases), open
@@ -110,6 +131,12 @@ something of its own will remain — you can delete both by hand:
 ```sh
 rm -rf ~/Library/Logs/LlamaScope                 # app log, proxy log and observations
 rm -rf ~/Library/Application\ Support/LlamaScope # swap-usage baseline
+```
+
+If you installed through Homebrew, one command does it for you:
+
+```sh
+brew zap --cask llamascope
 ```
 
 That is everything. LlamaScope installs no background services, adds

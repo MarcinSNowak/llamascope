@@ -180,9 +180,16 @@ xcodebuild -scheme LlamaScope -configuration Release build
 Gotowy pakiet leży w `Build/Products/Release/LlamaScope.app` — pełną
 ścieżkę `xcodebuild` wypisze na końcu.
 
-Gotowy `.dmg` — podpisany i notaryzowany — leży w
+Najkrócej, przez Homebrew:
+
+```sh
+brew tap MarcinSNowak/tap
+brew install --cask llamascope
+```
+
+Gotowy `.dmg` — podpisany i notaryzowany — leży też w
 [wydaniach](https://github.com/MarcinSNowak/llamascope/releases);
-budowanie ze źródeł jest drugą drogą, nie jedyną
+budowanie ze źródeł jest trzecią drogą, nie jedyną
 ([INSTALACJA.md](INSTALACJA.md)). Aplikacja **nie ma ikony w Docku** —
 szukaj jej w pasku menu u góry po prawej. Panel mówi po polsku albo po
 angielsku, zależnie od języków ustawionych w systemie.
@@ -350,10 +357,17 @@ dependencies, no `sudo` — just `python3 llamascope.py`; it also runs as a
 [SwiftBar](https://swiftbar.app) plugin, exact commands in the Polish
 section above), and a native menu-bar app in [`app/`](app/), built with
 `xcodebuild -scheme LlamaScope -configuration Release build`. **The app
-is version 0.9.1, signed with a Developer ID and notarized** — a ready
-`.dmg` is in
+is version 0.9.1, signed with a Developer ID and notarized**. The shortest
+way in is Homebrew:
+
+```sh
+brew tap MarcinSNowak/tap
+brew install --cask llamascope
+```
+
+A ready `.dmg` is also in
 [Releases](https://github.com/MarcinSNowak/llamascope/releases), and
-[INSTALL.md](INSTALL.md) walks through both routes in English. Its
+[INSTALL.md](INSTALL.md) walks through every route in English. Its
 interface is in Polish or English, following your system languages.
 
 **Known limit** (measured on Ollama 0.32.14): the `WARN` line only appears
